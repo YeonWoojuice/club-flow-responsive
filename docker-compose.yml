@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: clubflow-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: clubflow
+      POSTGRES_USER: clubflow_user
+      POSTGRES_PASSWORD: clubflow_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
