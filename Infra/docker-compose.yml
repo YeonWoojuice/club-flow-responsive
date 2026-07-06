@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: clubflow_user
       POSTGRES_PASSWORD: clubflow_pass
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:z
+  postgres_data:
