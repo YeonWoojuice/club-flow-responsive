@@ -17,6 +17,7 @@ club-flow-responsive/
 │   └── docker-compose.yml # 로컬 개발용 PostgreSQL 컨테이너
 ├── club_manage.pen        # Pencil 디자인 파일 (pencil MCP 도구로만 접근)
 ├── docs/
+│   ├── auth/              # Google 로그인과 동아리 진입 흐름
 │   ├── product/           # 요구사항과 데이터 모델
 │   └── development/       # 프론트엔드·백엔드·인프라 코딩 규칙
 └── CLAUDE.md              # 이 파일
@@ -28,7 +29,7 @@ club-flow-responsive/
 
 | 개념 | 설명 |
 |------|------|
-| **Generation (학기)** | 동아리 활동 단위(예: 26-1 학기). 상태: `모집 중` / `활동 중` / `종료` |
+| **Generation (학기)** | 동아리 활동 단위(예: 26-1 학기). 상태: `ACTIVE` / `CLOSED` |
 | **Person** | 이메일로 식별되는 고유 인물. 여러 학기에 걸쳐 재사용됨 |
 | **Application** | 특정 학기의 지원 기록. 현재는 수동 등록을 지원하고 Google Form 연동은 보류됨 |
 | **GenerationMember** | 특정 인물의 특정 학기 참여 기록 |
@@ -49,7 +50,7 @@ club-flow-responsive/
 
 ### 백엔드
 - Spring Boot 4.0.7, Java 21
-- Spring Data JPA, Spring Web, Spring Validation, Spring Actuator
+- Spring Data JPA, Spring Web, Spring Validation, Spring Actuator, springdoc OpenAPI
 - Flyway (DB 마이그레이션)
 - PostgreSQL (런타임), Testcontainers (테스트)
 - 빌드: Gradle (Groovy DSL)

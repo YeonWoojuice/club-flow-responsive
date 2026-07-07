@@ -12,6 +12,7 @@
 | ORM | Spring Data JPA + Hibernate |
 | DB | PostgreSQL 18 |
 | 마이그레이션 | Flyway |
+| API 문서 | springdoc OpenAPI 3, Swagger UI |
 | 테스트 | JUnit 5, Mockito, Testcontainers PostgreSQL |
 
 - 비밀번호 로그인과 자체 JWT 발급은 현재 범위에 포함하지 않는다.
@@ -65,42 +66,17 @@ com.clubflow.backend/
 
 ## API
 
-```text
-GET  /api/auth/me          현재 로그인 사용자
-GET  /api/auth/csrf        CSRF 토큰
-POST /api/auth/logout      로그아웃
-GET  /api/clubs            접근 가능한 동아리 목록
-GET  /api/clubs/{clubId}   동아리 접근 권한 확인
-POST /api/clubs            동아리와 회장 권한 생성
-GET  /api/clubs/{clubId}/generations
-POST /api/clubs/{clubId}/generations
-PUT  /api/generations/{generationId}
-GET  /api/clubs/{clubId}/applications
-POST /api/clubs/{clubId}/applications/manual
-GET  /api/applications/{applicationId}
-PATCH /api/applications/{applicationId}/status
-GET  /api/clubs/{clubId}/members
-```
-
+- 실행 중인 API 계약의 기준은 `/v3/api-docs`이며 UI는 `/swagger-ui.html`에서 확인한다.
+- 엔드포인트 목록을 문서에 중복 작성하지 않는다.
+- Spring Security 필터가 처리하는 엔드포인트는 OpenAPI에서 누락될 수 있으므로 별도로 문서화한다.
 - 요청 DTO는 Java `record`와 Jakarta Validation을 사용한다.
 - 성공 응답은 별도 `data` 래퍼 없이 DTO를 직접 반환한다.
 - 오류 응답은 `{ "code": "...", "message": "..." }` 형식을 사용한다.
 
 ## Flyway
 
-```text
-V1__create_users.sql
-V2__create_clubs.sql
-V3__create_club_staffs.sql
-V4__create_generations.sql
-V5__create_persons.sql
-V6__create_applications.sql
-V7__create_application_answers.sql
-V8__create_generation_members.sql
-```
-
 - 파일명은 `V{버전}__{설명}.sql` 형식을 사용한다.
-- V1~V3은 인증과 동아리, V4~V8은 학기와 지원자·부원 MVP이다.
+- 현재 마이그레이션 목록은 `backend/src/main/resources/db/migration/`을 기준으로 확인한다.
 - 이 기준이 공유되거나 배포된 후에는 기존 마이그레이션을 수정하지 않고 새 버전을 추가한다.
 - DDL에 `IF NOT EXISTS`를 사용하지 않는다.
 

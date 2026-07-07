@@ -1,49 +1,48 @@
+# 인증과 동아리 진입 흐름
 
-# Auth / Club Creation Flow
+## 목적
 
-## 목표
-Google 로그인 이후 사용자가 ClubFlow에 자동 가입하고,
-동아리를 생성하면 자동으로 해당 동아리의 PRESIDENT 권한을 가진다.
+운영진은 Google 계정으로 로그인하고, 승인된 동아리 권한에 따라 관리 화면에 진입합니다. 지원자와 부원은 로그인 대상이 아닙니다.
 
-## 구현 범위
-- Google 로그인
-- users 자동 생성/조회
-- clubs 생성
-- club_staffs 생성
-- 로그인 후 접근 가능한 동아리 조회
-- 동아리가 없으면 동아리 생성 화면으로 이동
-- 동아리가 있으면 대시보드로 이동
+## 로그인 흐름
 
-## 테이블
-### users
-- id UUID PK
-- google_sub VARCHAR UNIQUE
-- email VARCHAR UNIQUE
-- name VARCHAR
-- phone VARCHAR NULL
-- profile_image_url TEXT
-- created_at TIMESTAMPTZ
-- last_login_at TIMESTAMPTZ
+```text
+React 로그인 화면
+  → GET /oauth2/authorization/google
+  → Google 로그인 및 동의
+  → GET /login/oauth2/code/google
+  → GoogleOidcUserService
+  → users 생성 또는 프로필 갱신
+  → 서버 세션(JSESSIONID) 생성
+  → http://localhost:5173/auth/callback
+```
 
-### clubs
-- id UUID PK
-- name VARCHAR
-- description TEXT
-- created_by_user_id UUID FK -> users.id
-- created_at TIMESTAMPTZ
-- updated_at TIMESTAMPTZ
+![Google 로그인과 동아리 진입 흐름](./club_flow.drawio.png)
 
-### club_staffs
-- id UUID PK
-- club_id UUID FK -> clubs.id
-- user_id UUID FK -> users.id
-- role VARCHAR
-- status VARCHAR
-- created_at TIMESTAMPTZ
-- updated_at TIMESTAMPTZ
+## 로그인 후 분기
 
-## 핵심 정책
-- 첫 Google 로그인 시 users에 없으면 자동 생성한다.
-- 동아리 생성자는 자동으로 PRESIDENT가 된다.
-- club_staffs.status = APPROVED 인 경우만 접근 가능한 동아리로 본다.
-- 같은 사용자가 같은 동아리에 중복 등록되지 않도록 UNIQUE(club_id, user_id)를 둔다.
+프론트엔드는 `GET /api/auth/me`로 로그인 상태를 확인한 뒤 접근 가능한 동아리를 조회합니다.
+
+```text
+동아리 0개 → /clubs/new
+동아리 1개 → /clubs/{clubId}/dashboard
+동아리 2개 이상 → /clubs
+```
+
+동아리를 처음 생성하면 생성자에게 `PRESIDENT/APPROVED` 권한이 같은 트랜잭션에서 부여됩니다.
+
+## 보안 정책
+
+- Google 사용자는 이메일이 아니라 OIDC `sub`로 식별합니다.
+- `email_verified=true`인 Google 계정만 허용합니다.
+- 인증 정보는 브라우저 저장소가 아니라 서버 세션으로 관리합니다.
+- API 요청은 `JSESSIONID` 쿠키를 포함합니다.
+- 쓰기 요청은 `GET /api/auth/csrf`에서 받은 CSRF 토큰을 헤더에 포함합니다.
+- `club_staffs.status=APPROVED`인 운영진만 해당 동아리 데이터에 접근합니다.
+- 로그아웃은 `POST /api/auth/logout`으로 처리하고 세션과 쿠키를 제거합니다.
+
+## 관련 코드
+
+- 백엔드: `backend/src/main/java/com/clubflow/backend/auth/`
+- 프론트엔드: `frontend/src/auth/`, `frontend/src/api/auth.ts`
+- 권한 모델: `docs/product/data-model.md`

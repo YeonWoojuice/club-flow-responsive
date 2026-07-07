@@ -1,16 +1,24 @@
-# ClubFlow 인증·동아리 데이터 모델
+# ClubFlow MVP 데이터 모델
 
 ## 관계
 
 ```text
 users 1 ── N club_staffs N ── 1 clubs
   │                                │
-  └──────── created_by_user_id ────┘
+  └──────── created_by_user_id ────┤
+                                   ├── N generations
+                                   └── N persons
+
+generations 1 ── N applications N ── 1 persons
+      │                 │
+      │                 └── N application_answers
+      │
+      └── N generation_members N ── 1 persons
 ```
 
-- `users`: Google 로그인을 완료한 서비스 사용자
-- `clubs`: 사용자가 생성한 동아리
-- `club_staffs`: 사용자가 특정 동아리에서 가진 운영진 권한
+- `users`는 Google 로그인을 완료한 운영진 사용자다.
+- `club_staffs`는 사용자와 동아리의 접근 권한을 연결한다.
+- `persons`는 지원자와 부원이 공유하는 인물 정보다.
 - 로그인 사용자와 지원자·부원 정보는 서로 다른 도메인이다.
 
 ## users
