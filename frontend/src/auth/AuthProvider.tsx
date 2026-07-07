@@ -1,24 +1,14 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ApiError } from "../api/http";
 import { getCurrentUser } from "../api/auth";
 import type { CurrentUser } from "../types/auth";
-
-type AuthStatus = "loading" | "authenticated" | "anonymous";
-
-type AuthContextValue = {
-  status: AuthStatus;
-  user: CurrentUser | null;
-  refresh: () => Promise<CurrentUser | null>;
-  clear: () => void;
-};
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue, type AuthStatus } from "./AuthContext";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<CurrentUser | null>(null);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
@@ -34,29 +24,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus("anonymous");
       return null;
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void refresh();
+    let active = true;
+    getCurrentUser()
+      .then(currentUser => {
+        if (!active) return;
+        setUser(currentUser);
+        setStatus("authenticated");
+      })
+      .catch(() => {
+        if (!active) return;
+        setUser(null);
+        setStatus("anonymous");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const clear = useCallback(() => {
+    setUser(null);
+    setStatus("anonymous");
   }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
     status,
     user,
     refresh,
-    clear: () => {
-      setUser(null);
-      setStatus("anonymous");
-    },
-  }), [status, user]);
+    clear,
+  }), [clear, refresh, status, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth는 AuthProvider 안에서 사용해야 합니다.");
-  }
-  return context;
 }

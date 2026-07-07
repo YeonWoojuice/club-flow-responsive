@@ -23,7 +23,22 @@ export function GenerationPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [clubId]);
+  useEffect(() => {
+    let active = true;
+    listGenerations(clubId)
+      .then(data => {
+        if (active) setGenerations(data);
+      })
+      .catch(() => {
+        if (active) setError("학기 목록을 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [clubId]);
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

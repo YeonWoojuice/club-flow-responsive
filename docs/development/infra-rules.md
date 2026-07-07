@@ -1,6 +1,6 @@
 # 인프라 코딩 규칙
 
-> 이 문서는 `docker-compose.yml` 및 향후 추가될 인프라 파일 전체에 적용됩니다.
+> 이 문서는 `Infra/docker-compose.yml` 및 향후 추가될 인프라 파일 전체에 적용됩니다.
 
 ---
 
@@ -12,7 +12,7 @@
 | Backend | Spring Boot 4 (JVM) | REST API 서버 (포트 8080) |
 | Frontend | Vite dev server | 개발용 정적 파일 서버 (포트 5173) |
 
-로컬 개발 환경은 `docker-compose.yml`로 DB만 컨테이너화하고, 앱은 직접 실행한다.
+로컬 개발 환경은 `Infra/docker-compose.yml`로 DB만 컨테이너화하고, 앱은 직접 실행한다.
 
 ---
 
@@ -26,13 +26,13 @@ services:
     image: postgres:18        # 이미지 태그를 latest가 아닌 구체적 버전으로 고정
     container_name: clubflow-postgres
     ports:
-      - "5432:5432"
+      - "15432:5432"
     environment:
       POSTGRES_DB: clubflow
       POSTGRES_USER: clubflow_user
       POSTGRES_PASSWORD: clubflow_pass
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     restart: unless-stopped   # 새 서비스 추가 시 기본값
 
 volumes:
@@ -47,7 +47,7 @@ volumes:
 ### 환경 변수 관리
 
 ```yaml
-# docker-compose.yml — 로컬 개발용 값은 여기에 직접 기재해도 됨
+# Infra/docker-compose.yml — 로컬 개발용 값은 여기에 직접 기재해도 됨
 environment:
   POSTGRES_PASSWORD: clubflow_pass   # 로컬 개발 전용
 
@@ -56,7 +56,7 @@ environment:
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # 반드시 외부 주입
 ```
 
-- 로컬 개발용 `docker-compose.yml` 에는 편의상 평문 값을 허용한다.
+- 로컬 개발용 `Infra/docker-compose.yml`에는 편의상 평문 값을 허용한다.
 - 프로덕션 파일에서는 `${VAR}` 참조만 허용한다.
 - `.env` 파일을 사용하는 경우 `.gitignore` 에 등록하고 `.env.example`을 제공한다.
 
@@ -101,7 +101,7 @@ services:
 
 | 서비스 | 포트 | 비고 |
 |--------|------|------|
-| PostgreSQL | 5432 | 외부 노출 (로컬 개발용) |
+| PostgreSQL | 15432 → 5432 | 로컬 PostgreSQL과 충돌 방지 |
 | Backend (Spring Boot) | 8080 | |
 | Frontend (Vite dev) | 5173 | |
 
@@ -116,7 +116,7 @@ services:
 
 ```bash
 # 1. DB 먼저 실행
-docker compose up -d
+docker compose -f Infra/docker-compose.yml up -d postgres
 
 # 2. DB 준비 확인 후 백엔드 실행
 cd backend && ./gradlew bootRun
@@ -126,16 +126,16 @@ cd frontend && npm run dev
 ```
 
 - DB가 완전히 기동되기 전에 Spring Boot를 실행하면 Flyway 마이그레이션이 실패한다.
-  → `docker compose up -d && sleep 3` 또는 Spring의 DB 재시도 설정으로 완화한다.
+  → DB 준비 상태를 확인한 뒤 백엔드를 실행하거나 Spring의 DB 재시도 설정으로 완화한다.
 
 ### 데이터 초기화
 
 ```bash
 # 볼륨까지 삭제 (DB 전체 초기화)
-docker compose down -v
+docker compose -f Infra/docker-compose.yml down -v
 
 # 컨테이너만 중지 (데이터 유지)
-docker compose down
+docker compose -f Infra/docker-compose.yml down
 ```
 
 - 개발 중 스키마 변경으로 Flyway 오류가 발생하면 `docker compose down -v` 후 재시작한다.
@@ -168,9 +168,9 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 ### 환경별 설정 파일
 
 ```
-docker-compose.yml          # 로컬 개발 (현재)
-docker-compose.ci.yml       # CI 테스트용
-docker-compose.prod.yml     # 프로덕션 (추후)
+Infra/docker-compose.yml          # 로컬 개발 (현재)
+Infra/docker-compose.ci.yml       # CI 테스트용
+Infra/docker-compose.prod.yml     # 프로덕션 (추후)
 ```
 
 - `docker-compose.override.yml` 은 사용하지 않는다. 환경별 파일을 명시적으로 지정한다.
@@ -190,5 +190,5 @@ docker-compose.prod.yml     # 프로덕션 (추후)
 
 - `image: postgres:latest` — 구체적 버전 태그 사용.
 - 컨테이너 내부에서 직접 파일 편집 (`docker exec ... vi`) — 이미지 빌드 또는 볼륨 마운트로 해결.
-- 프로덕션 `docker-compose.yml` 에 평문 시크릿 커밋.
-- `docker compose up` 없이 Spring Boot 실행 (Flyway 실패).
+- 프로덕션 Compose 파일에 평문 시크릿 커밋.
+- `docker compose -f Infra/docker-compose.yml up -d postgres` 없이 Spring Boot 실행 (Flyway 실패).

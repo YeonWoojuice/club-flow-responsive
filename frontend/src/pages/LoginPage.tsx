@@ -1,5 +1,5 @@
 import { Navigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../auth/AuthContext";
 import { Brand } from "../components/Brand";
 import { LoadingScreen } from "../components/LoadingScreen";
 

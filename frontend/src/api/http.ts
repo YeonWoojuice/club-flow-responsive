@@ -8,6 +8,12 @@ type CsrfToken = {
   token: string;
 };
 
+export const API_AUTH_ERROR_EVENT = "clubflow:api-auth-error";
+
+export type ApiAuthErrorDetail = {
+  status: 401 | 403;
+};
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
@@ -21,6 +27,13 @@ export class ApiError extends Error {
 }
 
 let csrfToken: CsrfToken | null = null;
+
+function notifyAuthError(status: number) {
+  if (status !== 401 && status !== 403) return;
+  window.dispatchEvent(new CustomEvent<ApiAuthErrorDetail>(API_AUTH_ERROR_EVENT, {
+    detail: { status },
+  }));
+}
 
 async function getCsrfToken() {
   if (csrfToken) return csrfToken;
@@ -60,6 +73,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     : null;
 
   if (!response.ok) {
+    notifyAuthError(response.status);
     throw new ApiError(
       response.status,
       body?.message ?? "요청을 처리하지 못했습니다.",

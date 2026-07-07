@@ -65,6 +65,17 @@ src/
 - 인증 사용자 상태는 `AuthProvider`에서 관리한다.
 - 색상은 `styles.css`의 CSS Custom Properties를 우선 사용한다.
 
+## 검증
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+- API 공통 처리와 인증·권한 이동은 Vitest와 Testing Library로 검증한다.
+- 기능 변경 후 lint, 테스트, 프로덕션 빌드를 모두 통과시킨다.
+
 ## 금지 사항
 
 - `window.location`을 이용한 앱 내부 페이지 이동

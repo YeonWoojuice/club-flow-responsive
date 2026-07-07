@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { logout } from "../api/auth";
 import { getClub } from "../api/clubs";
 import { ApiError } from "../api/http";
-import { useAuth } from "../auth/AuthProvider";
+import { useAuth } from "../auth/AuthContext";
 import { Brand } from "../components/Brand";
 import { ClubNavigation } from "../components/ClubNavigation";
 import { LoadingScreen } from "../components/LoadingScreen";
