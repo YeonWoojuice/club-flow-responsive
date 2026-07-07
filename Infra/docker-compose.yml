@@ -3,7 +3,7 @@ services:
     image: postgres:18
     container_name: clubflow-postgres
     ports:
-      - "5432:5432"
+      - "15432:5432"
     environment:
       POSTGRES_DB: clubflow
       POSTGRES_USER: clubflow_user
