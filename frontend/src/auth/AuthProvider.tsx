@@ -1,44 +1,58 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { ApiError } from "../api/http";
 import { getCurrentUser } from "../api/auth";
 import type { CurrentUser } from "../types/auth";
+import { classifyAuthFailure } from "./authFailure";
 import { AuthContext, type AuthContextValue, type AuthStatus } from "./AuthContext";
+
+const TEMPORARY_AUTH_ERROR = "로그인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    setError(null);
+    setStatus(current => current === "error" ? "loading" : current);
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
       setStatus("authenticated");
       return currentUser;
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
+    } catch (requestError) {
+      if (classifyAuthFailure(requestError) === "unauthorized") {
         setUser(null);
         setStatus("anonymous");
         return null;
       }
-      setUser(null);
-      setStatus("anonymous");
+      setError(TEMPORARY_AUTH_ERROR);
+      setStatus(current => current === "loading" ? "error" : current);
       return null;
     }
   }, []);
 
   useEffect(() => {
     let active = true;
-    getCurrentUser()
-      .then(currentUser => {
+    const loadCurrentUser = async () => {
+      try {
+        const currentUser = await getCurrentUser();
         if (!active) return;
         setUser(currentUser);
         setStatus("authenticated");
-      })
-      .catch(() => {
+        setError(null);
+      } catch (requestError) {
         if (!active) return;
-        setUser(null);
-        setStatus("anonymous");
-      });
+        if (classifyAuthFailure(requestError) === "unauthorized") {
+          setUser(null);
+          setStatus("anonymous");
+          setError(null);
+          return;
+        }
+        setError(TEMPORARY_AUTH_ERROR);
+        setStatus("error");
+      }
+    };
+    void loadCurrentUser();
     return () => {
       active = false;
     };
@@ -47,14 +61,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clear = useCallback(() => {
     setUser(null);
     setStatus("anonymous");
+    setError(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
     status,
     user,
+    error,
     refresh,
     clear,
-  }), [clear, refresh, status, user]);
+  }), [clear, error, refresh, status, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

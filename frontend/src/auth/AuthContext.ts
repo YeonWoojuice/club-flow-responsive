@@ -1,11 +1,12 @@
 import { createContext, useContext } from "react";
 import type { CurrentUser } from "../types/auth";
 
-export type AuthStatus = "loading" | "authenticated" | "anonymous";
+export type AuthStatus = "loading" | "authenticated" | "anonymous" | "error";
 
 export type AuthContextValue = {
   status: AuthStatus;
   user: CurrentUser | null;
+  error: string | null;
   refresh: () => Promise<CurrentUser | null>;
   clear: () => void;
 };

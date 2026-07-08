@@ -4,6 +4,7 @@ import { logout } from "../api/auth";
 import { getClub } from "../api/clubs";
 import { ApiError } from "../api/http";
 import { useAuth } from "../auth/AuthContext";
+import { ErrorToast } from "./ErrorToast";
 import type { Club, ClubRole } from "../types/club";
 
 const roleLabel: Record<ClubRole, string> = {
@@ -22,6 +23,8 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [club, setClub] = useState<Club | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
 
   useEffect(() => {
     getClub(clubId)
@@ -34,9 +37,17 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
   }, [clubId, navigate]);
 
   const handleLogout = async () => {
-    await logout();
-    clear();
-    navigate("/login", { replace: true });
+    setLoggingOut(true);
+    setLogoutError("");
+    try {
+      await logout();
+      clear();
+      navigate("/login", { replace: true });
+    } catch {
+      setLogoutError("로그아웃에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   const nav = [
@@ -105,9 +116,10 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
             </div>
             <button
               onClick={handleLogout}
+              disabled={loggingOut}
               className="shrink-0 text-[10px] text-[var(--sidebar-text-muted)] transition-colors hover:text-white"
             >
-              나가기
+              {loggingOut ? "처리 중" : "나가기"}
             </button>
           </div>
         </div>
@@ -116,6 +128,9 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
       <div className="flex flex-1 flex-col overflow-y-auto bg-[var(--surface)]">
         {children}
       </div>
+      {logoutError && (
+        <ErrorToast message={logoutError} onDismiss={() => setLogoutError("")} />
+      )}
     </div>
   );
 }

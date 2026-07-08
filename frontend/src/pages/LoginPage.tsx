@@ -1,5 +1,6 @@
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { AuthErrorScreen } from "../auth/AuthErrorScreen";
 import { Brand } from "../components/Brand";
 import { LoadingScreen } from "../components/LoadingScreen";
 
@@ -12,6 +13,9 @@ export function LoginPage() {
 
   if (status === "loading") {
     return <LoadingScreen message="로그인 상태를 확인하고 있습니다." />;
+  }
+  if (status === "error") {
+    return <AuthErrorScreen />;
   }
   if (status === "authenticated") {
     return <Navigate to="/" replace />;
