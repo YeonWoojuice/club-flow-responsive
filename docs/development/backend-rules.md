@@ -4,16 +4,9 @@
 
 ## 기술 기준
 
-| 항목 | 기준 |
-|---|---|
-| 프레임워크 | Spring Boot 4.0.7 |
-| 언어 | Java 21 |
-| 인증 | Spring Security OAuth2 Login + OIDC + 서버 세션 |
-| ORM | Spring Data JPA + Hibernate |
-| DB | PostgreSQL 18 |
-| 마이그레이션 | Flyway |
-| API 문서 | springdoc OpenAPI 3, Swagger UI |
-| 테스트 | JUnit 5, Mockito, Testcontainers PostgreSQL |
+버전을 포함한 스택 기준은 [AGENTS.md의 기술 스택 표](../../AGENTS.md#기술-스택-버전의-유일한-기준)를 따릅니다.
+이 문서 고유 기준: Spring Security OAuth2 Login + OIDC + 서버 세션 인증,
+JUnit 5 + Mockito + Testcontainers PostgreSQL 테스트.
 
 - 비밀번호 로그인과 자체 JWT 발급은 현재 범위에 포함하지 않는다.
 - Google 사용자는 이메일이 아닌 OIDC `sub`로 식별한다.

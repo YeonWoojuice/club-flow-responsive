@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { listMembers } from "../api/members";
+import { apiErrorMessage } from "../api/http";
 import { AppLayout } from "../components/AppLayout";
 import type { GenerationMember, GenerationMemberStatus, MemberJoinedSource } from "../types/member";
 
@@ -57,19 +58,19 @@ export function MemberListPage() {
   useEffect(() => {
     listMembers(clubId)
       .then(setMembers)
-      .catch(() => setError("부원 목록을 불러오지 못했습니다."))
+      .catch(requestError => setError(apiErrorMessage(requestError, "부원 목록을 불러오지 못했습니다.")))
       .finally(() => setLoading(false));
   }, [clubId]);
 
   return (
     <AppLayout clubId={clubId}>
       {/* Page header */}
-      <div className="border-b border-[var(--border-subtle)] bg-white px-8 py-5">
+      <div className="border-b border-[var(--border-subtle)] bg-white px-4 py-5 md:px-8">
         <h1 className="text-xl font-extrabold text-[var(--text-primary)]">부원 관리</h1>
         <p className="mt-0.5 text-sm text-[var(--text-secondary)]">학기별 부원 등록 기록을 확인합니다.</p>
       </div>
 
-      <div className="px-8 py-6">
+      <div className="px-4 py-6 md:px-8">
         {loading && (
           <p className="text-sm text-[var(--text-secondary)]">불러오는 중...</p>
         )}
@@ -88,8 +89,8 @@ export function MemberListPage() {
         )}
 
         {!loading && !error && members.length > 0 && (
-          <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-white">
-            <table className="w-full text-left">
+          <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-white">
+            <table className="w-full min-w-[480px] text-left">
               <thead>
                 <tr className="bg-[var(--panel-muted)]">
                   <th className="px-5 py-3 text-xs font-extrabold text-[var(--text-secondary)]">이름/이메일</th>

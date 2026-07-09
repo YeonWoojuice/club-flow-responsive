@@ -16,12 +16,8 @@
 
 ## Tech Stack
 
-| 구분       | 사용 기술                                                  |
-| -------- | ------------------------------------------------------ |
-| Frontend | React 19, TypeScript 5.8, Vite 7, Tailwind CSS 4       |
-| Backend  | Java 21, Spring Boot, Spring Security, Spring Data JPA, springdoc |
-| Database | PostgreSQL, Flyway                                     |
-| Infra    | Docker, Docker Compose                                 |
+React + TypeScript 프론트엔드, Spring Boot + PostgreSQL 백엔드로 구성됩니다.
+버전을 포함한 전체 스택의 기준은 [AGENTS.md의 기술 스택 표](./AGENTS.md#기술-스택-버전의-유일한-기준)를 따릅니다.
 
 ## Documentation
 
@@ -32,7 +28,7 @@
 
 ### Authentication
 
-* [Authentication Flow](./docs/auth/auth_flow.md)
+* [Authentication Flow](./docs/features/auth/auth_flow.md)
 
 ### Development
 

@@ -38,7 +38,8 @@ export type ManualApplicationInput = {
   generationId: string;
   name: string;
   email: string;
-  phone: string;
+  /** 백엔드 계약상 선택 항목. 빈 값은 필드를 생략해 null로 저장되게 한다. */
+  phone?: string;
   studentNumber: string;
   applicationAnswers: {
     questionKey: string;

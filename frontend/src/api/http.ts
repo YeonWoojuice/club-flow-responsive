@@ -26,6 +26,14 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 서버 오류 메시지가 있으면 그대로 사용자에게 보여주고, 없을 때만 기본 문구를 씁니다.
+ * 에러 문구의 단일 소스는 백엔드입니다. (AGENTS.md "에러 처리 계약" 참조)
+ */
+export function apiErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof ApiError ? error.message : fallback;
+}
+
 let csrfToken: CsrfToken | null = null;
 
 export function clearCsrfToken() {

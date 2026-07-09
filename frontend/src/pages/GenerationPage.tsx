@@ -1,7 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { createGeneration, listGenerations, updateGeneration } from "../api/generations";
-import { ApiError } from "../api/http";
+import { apiErrorMessage } from "../api/http";
 import { AppLayout } from "../components/AppLayout";
 import type { Generation, GenerationStatus } from "../types/generation";
 
@@ -30,30 +30,22 @@ export function GenerationPage() {
   const [editState, setEditState] = useState<EditState>({ name: "", startDate: "", endDate: "", status: "ACTIVE" });
   const [editSubmitting, setEditSubmitting] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const fetchGenerations = useCallback(() => {
     listGenerations(clubId)
       .then(setGenerations)
-      .catch(() => setError("학기 목록을 불러오지 못했습니다."))
+      .catch(requestError => setError(apiErrorMessage(requestError, "학기 목록을 불러오지 못했습니다.")))
       .finally(() => setLoading(false));
-  };
+  }, [clubId]);
 
   useEffect(() => {
-    let active = true;
-    listGenerations(clubId)
-      .then(data => {
-        if (active) setGenerations(data);
-      })
-      .catch(() => {
-        if (active) setError("학기 목록을 불러오지 못했습니다.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [clubId]);
+    fetchGenerations();
+  }, [fetchGenerations]);
+
+  // 쓰기 성공 후 목록 갱신용 (초기 로딩은 위 effect가 담당)
+  const load = () => {
+    setLoading(true);
+    fetchGenerations();
+  };
 
   const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -67,7 +59,7 @@ export function GenerationPage() {
       setShowCreate(false);
       load();
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError.message : "학기를 생성하지 못했습니다.");
+      setError(apiErrorMessage(requestError, "학기를 생성하지 못했습니다."));
     } finally {
       setSubmitting(false);
     }
@@ -96,13 +88,17 @@ export function GenerationPage() {
       setEditingId(null);
       load();
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError.message : "학기를 수정하지 못했습니다.");
+      setError(apiErrorMessage(requestError, "학기를 수정하지 못했습니다."));
     } finally {
       setEditSubmitting(false);
     }
   };
 
   const handleClose = async (generation: Generation) => {
+    const confirmed = window.confirm(
+      `'${generation.name}' 학기를 종료할까요?\n종료된 학기는 다시 활성화할 수 없습니다.`,
+    );
+    if (!confirmed) return;
     setError("");
     try {
       await updateGeneration(generation.id, {
@@ -113,7 +109,7 @@ export function GenerationPage() {
       });
       load();
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError.message : "학기를 종료하지 못했습니다.");
+      setError(apiErrorMessage(requestError, "학기를 종료하지 못했습니다."));
     }
   };
 

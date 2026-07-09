@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { listClubs } from "../api/clubs";
+import { apiErrorMessage } from "../api/http";
 import { useAuth } from "../auth/AuthContext";
 import { Brand } from "../components/Brand";
 import type { Club } from "../types/club";
@@ -16,7 +17,7 @@ export function ClubListPage() {
   useEffect(() => {
     listClubs()
       .then(setClubs)
-      .catch(() => setError("동아리 목록을 불러오지 못했습니다."))
+      .catch(requestError => setError(apiErrorMessage(requestError, "동아리 목록을 불러오지 못했습니다.")))
       .finally(() => setLoading(false));
   }, []);
 

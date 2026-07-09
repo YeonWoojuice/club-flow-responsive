@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { changeApplicationStatus, getApplication } from "../api/applications";
-import { ApiError } from "../api/http";
+import { apiErrorMessage } from "../api/http";
 import { AppLayout } from "../components/AppLayout";
 import type { ApplicationDetail, ApplicationStatus } from "../types/application";
 
@@ -13,6 +13,10 @@ const statusConfig: Record<ApplicationStatus, { label: string; cls: string }> = 
   CANCELED: { label: "취소", cls: "bg-[var(--panel-muted)] text-[var(--text-secondary)]" },
 };
 
+// 상태 전이 정책의 원본은 docs/product/requirements.md, 강제 주체는 백엔드 Application.changeStatus().
+// 이 목록은 확인 대화상자·버튼 노출용 UI 파생값이다.
+const TERMINAL_STATUSES: ApplicationStatus[] = ["ACCEPTED", "REJECTED", "CANCELED"];
+
 export function ApplicationDetailPage() {
   const { clubId = "", applicationId = "" } = useParams();
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
@@ -22,30 +26,32 @@ export function ApplicationDetailPage() {
   useEffect(() => {
     getApplication(applicationId)
       .then(setApplication)
-      .catch(() => setError("지원서를 불러오지 못했습니다."));
+      .catch(requestError => setError(apiErrorMessage(requestError, "지원서를 불러오지 못했습니다.")));
   }, [applicationId]);
 
   const handleStatus = async (status: ApplicationStatus) => {
+    if (TERMINAL_STATUSES.includes(status)) {
+      const confirmed = window.confirm(
+        `지원 상태를 '${statusConfig[status].label}'(으)로 변경할까요?\n최종 처리된 상태는 되돌릴 수 없습니다.`,
+      );
+      if (!confirmed) return;
+    }
     setUpdating(true);
     setError("");
     try {
       setApplication(await changeApplicationStatus(applicationId, status));
     } catch (requestError) {
-      setError(
-        requestError instanceof ApiError ? requestError.message : "상태를 변경하지 못했습니다.",
-      );
+      setError(apiErrorMessage(requestError, "상태를 변경하지 못했습니다."));
     } finally {
       setUpdating(false);
     }
   };
 
-  const isTerminal = application
-    ? (["ACCEPTED", "REJECTED", "CANCELED"] as ApplicationStatus[]).includes(application.status)
-    : false;
+  const isTerminal = application ? TERMINAL_STATUSES.includes(application.status) : false;
 
   return (
     <AppLayout clubId={clubId}>
-      <header className="flex items-center gap-3 border-b border-[var(--border-subtle)] bg-white px-8 py-4">
+      <header className="flex items-center gap-3 border-b border-[var(--border-subtle)] bg-white px-4 py-4 md:px-8">
         <Link
           to={`/clubs/${clubId}/applications`}
           className="rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--panel-muted)]"
@@ -65,16 +71,16 @@ export function ApplicationDetailPage() {
       </header>
 
       {error && (
-        <div className="mx-8 mt-6 rounded-xl bg-[var(--danger-soft)] p-4 text-sm font-bold text-[var(--danger)]">
+        <div className="mx-4 mt-6 rounded-xl bg-[var(--danger-soft)] p-4 text-sm font-bold text-[var(--danger)] md:mx-8">
           {error}
         </div>
       )}
       {!application && !error && (
-        <p className="m-8 text-sm text-[var(--text-secondary)]">불러오는 중...</p>
+        <p className="m-4 text-sm text-[var(--text-secondary)] md:m-8">불러오는 중...</p>
       )}
 
       {application && (
-        <div className="flex items-start gap-5 p-8">
+        <div className="flex flex-col gap-5 p-4 md:flex-row md:items-start md:p-8">
           <div className="flex min-w-0 flex-1 flex-col gap-5">
             <section className="rounded-xl border border-[var(--border-subtle)] bg-white p-6">
               <h2 className="font-extrabold">기본 정보</h2>
@@ -116,7 +122,7 @@ export function ApplicationDetailPage() {
             </section>
           </div>
 
-          <div className="w-72 shrink-0">
+          <div className="w-full md:w-72 md:shrink-0">
             <section className="rounded-xl border border-[var(--border-subtle)] bg-white p-6">
               <h2 className="font-extrabold">상태 변경</h2>
               <div className="mt-4 flex items-center justify-between">

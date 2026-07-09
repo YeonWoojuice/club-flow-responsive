@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { listClubs } from "../api/clubs";
+import { apiErrorMessage } from "../api/http";
 import { LoadingScreen } from "../components/LoadingScreen";
 
 export function ClubEntryPage() {
@@ -20,7 +21,9 @@ export function ClubEntryPage() {
         }
         navigate("/clubs", { replace: true });
       })
-      .catch(() => setMessage("동아리 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."));
+      .catch(requestError =>
+        setMessage(apiErrorMessage(requestError, "동아리 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.")),
+      );
   }, [navigate]);
 
   return <LoadingScreen message={message} />;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { listApplications } from "../api/applications";
+import { apiErrorMessage } from "../api/http";
 import { AppLayout } from "../components/AppLayout";
 import type {
   ApplicationSourceType,
@@ -45,7 +46,7 @@ export function ApplicationListPage() {
   useEffect(() => {
     listApplications(clubId)
       .then(setApplications)
-      .catch(() => setError("지원자 목록을 불러오지 못했습니다."))
+      .catch(requestError => setError(apiErrorMessage(requestError, "지원자 목록을 불러오지 못했습니다.")))
       .finally(() => setLoading(false));
   }, [clubId]);
 
@@ -57,7 +58,7 @@ export function ApplicationListPage() {
 
   return (
     <AppLayout clubId={clubId}>
-      <header className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-white px-8 py-5">
+      <header className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-white px-4 py-5 md:px-8">
         <div>
           <h1 className="text-xl font-extrabold">지원자 관리</h1>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">수동 등록 및 Google Form 지원자를 관리합니다.</p>
@@ -70,37 +71,41 @@ export function ApplicationListPage() {
         </Link>
       </header>
 
-      <main className="p-8">
-        <div className="mb-6 flex flex-wrap items-center gap-3">
-          <div className="flex overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-white">
-            {sourceTabs.map(tab => (
-              <button
-                key={tab.value}
-                onClick={() => setSourceFilter(tab.value)}
-                className={`px-3 py-2 text-xs font-bold transition-colors ${
-                  sourceFilter === tab.value
-                    ? "bg-[var(--navy)] text-white"
-                    : "text-[var(--text-secondary)] hover:bg-[var(--panel-muted)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+      <main className="p-4 md:p-8">
+        <div className="mb-4 flex flex-col gap-2 md:mb-6 md:flex-row md:flex-wrap md:items-center md:gap-3">
+          <div className="overflow-x-auto">
+            <div className="flex w-max overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-white">
+              {sourceTabs.map(tab => (
+                <button
+                  key={tab.value}
+                  onClick={() => setSourceFilter(tab.value)}
+                  className={`px-3 py-2 text-xs font-bold transition-colors ${
+                    sourceFilter === tab.value
+                      ? "bg-[var(--navy)] text-white"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--panel-muted)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-white">
-            {statusTabs.map(tab => (
-              <button
-                key={tab.value}
-                onClick={() => setStatusFilter(tab.value)}
-                className={`px-3 py-2 text-xs font-bold transition-colors ${
-                  statusFilter === tab.value
-                    ? "bg-[var(--navy)] text-white"
-                    : "text-[var(--text-secondary)] hover:bg-[var(--panel-muted)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="overflow-x-auto">
+            <div className="flex w-max overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-white">
+              {statusTabs.map(tab => (
+                <button
+                  key={tab.value}
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={`px-3 py-2 text-xs font-bold transition-colors ${
+                    statusFilter === tab.value
+                      ? "bg-[var(--navy)] text-white"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--panel-muted)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
           {(sourceFilter !== "ALL" || statusFilter !== "ALL") && (
             <span className="text-xs text-[var(--text-secondary)]">{filtered.length}건 표시</span>
@@ -119,47 +124,82 @@ export function ApplicationListPage() {
         )}
 
         {!loading && !error && filtered.length > 0 && (
-          <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-white">
-            <div className="grid grid-cols-[1fr_140px_130px_110px_100px] border-b border-[var(--border-subtle)] px-5 py-3">
-              <span className="text-xs font-bold text-[var(--text-secondary)]">이름 / 이메일</span>
-              <span className="text-xs font-bold text-[var(--text-secondary)]">학기</span>
-              <span className="text-xs font-bold text-[var(--text-secondary)]">제출일</span>
-              <span className="text-xs font-bold text-[var(--text-secondary)]">출처</span>
-              <span className="text-xs font-bold text-[var(--text-secondary)]">상태</span>
+          <>
+            {/* Mobile: card list */}
+            <div className="flex flex-col gap-3 md:hidden">
+              {filtered.map(app => (
+                <Link
+                  key={app.id}
+                  to={`/clubs/${clubId}/applications/${app.id}`}
+                  className="block rounded-xl border border-[var(--border-subtle)] bg-white p-4 transition hover:border-[var(--navy)]"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <b className="block text-sm">{app.name}</b>
+                      <span className="mt-0.5 block truncate text-xs text-[var(--text-secondary)]">{app.email}</span>
+                    </div>
+                    <span className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold ${statusConfig[app.status].cls}`}>
+                      {statusConfig[app.status].label}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
+                    <span>{app.generationName}</span>
+                    <span>·</span>
+                    <time>{new Date(app.submittedAt).toLocaleDateString("ko-KR")}</time>
+                    <span>·</span>
+                    {app.sourceType === "MANUAL" ? (
+                      <span className="rounded-md bg-[var(--panel-muted)] px-2 py-0.5 text-[10px] font-bold text-[var(--text-secondary)]">수동 등록</span>
+                    ) : (
+                      <span className="rounded-md bg-[var(--success-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--success)]">Google Form</span>
+                    )}
+                  </div>
+                </Link>
+              ))}
             </div>
-            {filtered.map(app => (
-              <Link
-                key={app.id}
-                to={`/clubs/${clubId}/applications/${app.id}`}
-                className="grid grid-cols-[1fr_140px_130px_110px_100px] items-center border-b border-[var(--border-subtle)] px-5 py-4 last:border-0 transition-colors hover:bg-[var(--panel-muted)]"
-              >
-                <span>
-                  <b className="block text-sm">{app.name}</b>
-                  <span className="mt-0.5 block text-xs text-[var(--text-secondary)]">{app.email}</span>
-                </span>
-                <span className="text-xs text-[var(--text-secondary)]">{app.generationName}</span>
-                <time className="text-xs text-[var(--text-secondary)]">
-                  {new Date(app.submittedAt).toLocaleDateString("ko-KR")}
-                </time>
-                <span>
-                  {app.sourceType === "MANUAL" ? (
-                    <span className="inline-block rounded-md bg-[var(--panel-muted)] px-2 py-1 text-[10px] font-bold text-[var(--text-secondary)]">
-                      수동 등록
-                    </span>
-                  ) : (
-                    <span className="inline-block rounded-md bg-[var(--success-soft)] px-2 py-1 text-[10px] font-bold text-[var(--success)]">
-                      Google Form
-                    </span>
-                  )}
-                </span>
-                <span>
-                  <span className={`inline-block rounded-md px-2 py-1 text-[10px] font-bold ${statusConfig[app.status].cls}`}>
-                    {statusConfig[app.status].label}
+
+            {/* Desktop: grid table */}
+            <div className="hidden overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-white md:block">
+              <div className="grid grid-cols-[1fr_140px_130px_110px_100px] border-b border-[var(--border-subtle)] px-5 py-3">
+                <span className="text-xs font-bold text-[var(--text-secondary)]">이름 / 이메일</span>
+                <span className="text-xs font-bold text-[var(--text-secondary)]">학기</span>
+                <span className="text-xs font-bold text-[var(--text-secondary)]">제출일</span>
+                <span className="text-xs font-bold text-[var(--text-secondary)]">출처</span>
+                <span className="text-xs font-bold text-[var(--text-secondary)]">상태</span>
+              </div>
+              {filtered.map(app => (
+                <Link
+                  key={app.id}
+                  to={`/clubs/${clubId}/applications/${app.id}`}
+                  className="grid grid-cols-[1fr_140px_130px_110px_100px] items-center border-b border-[var(--border-subtle)] px-5 py-4 last:border-0 transition-colors hover:bg-[var(--panel-muted)]"
+                >
+                  <span>
+                    <b className="block text-sm">{app.name}</b>
+                    <span className="mt-0.5 block text-xs text-[var(--text-secondary)]">{app.email}</span>
                   </span>
-                </span>
-              </Link>
-            ))}
-          </div>
+                  <span className="text-xs text-[var(--text-secondary)]">{app.generationName}</span>
+                  <time className="text-xs text-[var(--text-secondary)]">
+                    {new Date(app.submittedAt).toLocaleDateString("ko-KR")}
+                  </time>
+                  <span>
+                    {app.sourceType === "MANUAL" ? (
+                      <span className="inline-block rounded-md bg-[var(--panel-muted)] px-2 py-1 text-[10px] font-bold text-[var(--text-secondary)]">
+                        수동 등록
+                      </span>
+                    ) : (
+                      <span className="inline-block rounded-md bg-[var(--success-soft)] px-2 py-1 text-[10px] font-bold text-[var(--success)]">
+                        Google Form
+                      </span>
+                    )}
+                  </span>
+                  <span>
+                    <span className={`inline-block rounded-md px-2 py-1 text-[10px] font-bold ${statusConfig[app.status].cls}`}>
+                      {statusConfig[app.status].label}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </>
         )}
       </main>
     </AppLayout>

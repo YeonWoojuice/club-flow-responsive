@@ -43,6 +43,9 @@
 
 ## 상태 정책
 
+> 이 절이 지원 상태 전이 정책의 원본이다. 강제는 백엔드 `Application.changeStatus()`가 담당하며,
+> 프론트엔드의 상태 분기는 UI 편의용 파생이다.
+
 - SUBMITTED에서 REVIEWING으로 변경할 수 있다.
 - SUBMITTED 또는 REVIEWING에서 ACCEPTED, REJECTED, CANCELED로 변경할 수 있다.
 - ACCEPTED, REJECTED, CANCELED은 MVP의 최종 상태다.

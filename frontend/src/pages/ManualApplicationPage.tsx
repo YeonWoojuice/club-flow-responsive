@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { createManualApplication } from "../api/applications";
 import { listGenerations } from "../api/generations";
-import { ApiError } from "../api/http";
+import { apiErrorMessage } from "../api/http";
 import { AppLayout } from "../components/AppLayout";
 import type { Generation } from "../types/generation";
 
@@ -35,7 +35,7 @@ export function ManualApplicationPage() {
         setGenerations(active);
         setGenerationId(active[0]?.id ?? "");
       })
-      .catch(() => setError("학기 정보를 불러오지 못했습니다."));
+      .catch(requestError => setError(apiErrorMessage(requestError, "학기 정보를 불러오지 못했습니다.")));
   }, [clubId]);
 
   const updateAnswer = (id: number, field: "questionLabel" | "answerValue", value: string) => {
@@ -60,7 +60,7 @@ export function ManualApplicationPage() {
         generationId,
         name,
         email: email.trim().toLowerCase(),
-        phone,
+        phone: phone.trim() || undefined,
         studentNumber,
         applicationAnswers: answers.map((answer, index) => ({
           questionKey: `manual_${index + 1}`,
@@ -70,7 +70,7 @@ export function ManualApplicationPage() {
       });
       navigate(`/clubs/${clubId}/applications/${application.id}`, { replace: true });
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError.message : "지원자를 등록하지 못했습니다.");
+      setError(apiErrorMessage(requestError, "지원자를 등록하지 못했습니다."));
       setSubmitting(false);
     }
   };

@@ -5,9 +5,9 @@ import { getClub } from "../api/clubs";
 import { ApiError } from "../api/http";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorToast } from "./ErrorToast";
-import type { Club, ClubRole } from "../types/club";
+import type { Club, ClubStaffRole } from "../types/club";
 
-const roleLabel: Record<ClubRole, string> = {
+const roleLabel: Record<ClubStaffRole, string> = {
   PRESIDENT: "회장",
   VICE_PRESIDENT: "부회장",
   STAFF: "운영진",
@@ -25,6 +25,7 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
   const [club, setClub] = useState<Club | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     getClub(clubId)
@@ -61,7 +62,29 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
 
   return (
     <div className="flex h-screen overflow-hidden font-body">
-      <aside className="flex h-full w-60 shrink-0 flex-col bg-[var(--sidebar-bg)] px-5 py-6">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex h-full w-60 shrink-0 flex-col bg-[var(--sidebar-bg)] px-5 py-6 transition-transform md:relative md:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Close button — mobile only */}
+        <button
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg text-white md:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="사이드바 닫기"
+        >
+          ✕
+        </button>
+
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--sidebar-active)] text-xs font-bold text-white">
             동
@@ -85,6 +108,7 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
               <Link
                 key={item.to}
                 to={item.to}
+                onClick={() => setSidebarOpen(false)}
                 className={`flex h-10 items-center rounded-lg px-3 text-sm transition-colors ${
                   active
                     ? "bg-[var(--sidebar-active)] font-bold text-white"
@@ -125,9 +149,28 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
         </div>
       </aside>
 
+      {/* Main content */}
       <div className="flex flex-1 flex-col overflow-y-auto bg-[var(--surface)]">
+        {/* Mobile top nav bar */}
+        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-white px-4 py-3 md:hidden">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--sidebar-active)] text-xs font-bold text-white">
+              동
+            </div>
+            <span className="text-sm font-bold text-[var(--navy)]">동아리허브</span>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            aria-label="메뉴 열기"
+            className="text-xl text-[var(--navy)]"
+          >
+            ☰
+          </button>
+        </div>
+
         {children}
       </div>
+
       {logoutError && (
         <ErrorToast message={logoutError} onDismiss={() => setLogoutError("")} />
       )}
