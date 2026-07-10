@@ -58,17 +58,25 @@ export function ApplicationListPage() {
 
   return (
     <AppLayout clubId={clubId}>
-      <header className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-white px-4 py-5 md:px-8">
+      <header className="flex flex-col gap-4 border-b border-[var(--border-subtle)] bg-white px-4 py-5 sm:flex-row sm:items-center sm:justify-between md:px-8">
         <div>
           <h1 className="text-xl font-extrabold">지원자 관리</h1>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">수동 등록 및 Google Form 지원자를 관리합니다.</p>
         </div>
-        <Link
-          to={`/clubs/${clubId}/applications/new`}
-          className="rounded-lg bg-[var(--navy)] px-4 py-2.5 text-xs font-extrabold text-white"
-        >
-          + 수동 등록
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link
+            to={`/clubs/${clubId}/applications/import`}
+            className="rounded-lg border border-[var(--navy)] px-4 py-2.5 text-center text-xs font-extrabold text-[var(--navy)]"
+          >
+            Google Sheet 가져오기
+          </Link>
+          <Link
+            to={`/clubs/${clubId}/applications/new`}
+            className="rounded-lg bg-[var(--navy)] px-4 py-2.5 text-center text-xs font-extrabold text-white"
+          >
+            + 수동 등록
+          </Link>
+        </div>
       </header>
 
       <main className="p-4 md:p-8">

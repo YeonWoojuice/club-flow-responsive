@@ -1,6 +1,7 @@
 package com.clubflow.backend.member;
 
 import com.clubflow.backend.generation.Generation;
+import com.clubflow.backend.common.ConflictException;
 import com.clubflow.backend.person.Person;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -81,6 +82,18 @@ public class GenerationMember {
                 MemberJoinedSource.RETENTION,
                 GenerationMemberStatus.ACTIVE
         );
+    }
+
+    public boolean changeStatus(GenerationMemberStatus targetStatus) {
+        if (status == targetStatus) {
+            return false;
+        }
+        if (status == GenerationMemberStatus.WITHDRAWN) {
+            throw new ConflictException("탈퇴한 부원의 상태는 변경할 수 없습니다.");
+        }
+        this.status = targetStatus;
+        this.updatedAt = Instant.now();
+        return true;
     }
 
     public UUID getId() {

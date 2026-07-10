@@ -59,7 +59,7 @@ public class RetentionImportService {
     ) {
         requireClubAccess(googleSub, clubId);
         GenerationPair generations = requireGenerationPair(
-                clubId, request.previousGenerationId(), request.targetGenerationId()
+                clubId, request.previousGenerationId(), request.targetGenerationId(), false
         );
         Map<String, Person> previousMembersByEmail = membersByEmail(generations.previous().getId());
         Set<UUID> targetMemberIds = memberIds(generations.target().getId());
@@ -79,7 +79,7 @@ public class RetentionImportService {
     ) {
         requireClubAccess(googleSub, clubId);
         GenerationPair generations = requireGenerationPair(
-                clubId, request.previousGenerationId(), request.targetGenerationId()
+                clubId, request.previousGenerationId(), request.targetGenerationId(), true
         );
         Map<UUID, Person> previousMembersById = membersById(generations.previous().getId());
         Set<UUID> targetMemberIds = memberIds(generations.target().getId());
@@ -103,12 +103,19 @@ public class RetentionImportService {
         return new RetentionApplyResponse(requestedIds.size(), createdCount, alreadyMemberCount);
     }
 
-    private GenerationPair requireGenerationPair(UUID clubId, UUID previousGenerationId, UUID targetGenerationId) {
+    private GenerationPair requireGenerationPair(
+            UUID clubId,
+            UUID previousGenerationId,
+            UUID targetGenerationId,
+            boolean lockTarget
+    ) {
         if (previousGenerationId.equals(targetGenerationId)) {
             throw new ConflictException("이전 학기와 대상 학기는 달라야 합니다.");
         }
         Generation previous = generationService.requireGenerationInClub(previousGenerationId, clubId);
-        Generation target = generationService.requireGenerationInClub(targetGenerationId, clubId);
+        Generation target = lockTarget
+                ? generationService.requireGenerationInClubForUpdate(targetGenerationId, clubId)
+                : generationService.requireGenerationInClub(targetGenerationId, clubId);
         if (previous.getStatus() != GenerationStatus.CLOSED) {
             throw new ConflictException("이전 학기를 종료한 뒤 부원을 이월해 주세요.");
         }

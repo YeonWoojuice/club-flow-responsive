@@ -64,7 +64,7 @@ function requiresCsrf(method: string) {
 async function sendRequest(path: string, options: RequestInit, method: string) {
   const headers = new Headers(options.headers);
 
-  if (options.body) {
+  if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
   if (requiresCsrf(method)) {

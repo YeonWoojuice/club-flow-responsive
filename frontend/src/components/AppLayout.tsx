@@ -55,7 +55,12 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
     { label: "대시보드", to: `/clubs/${clubId}/dashboard` },
     { label: "학기/기수", to: `/clubs/${clubId}/generations` },
     { label: "지원자 관리", to: `/clubs/${clubId}/applications` },
-    { label: "부원 관리", to: `/clubs/${clubId}/members` },
+    { label: "부원 관리", to: `/clubs/${clubId}/members`, exact: true },
+    { label: "부원 이월", to: `/clubs/${clubId}/members/retention` },
+    ...(club?.role === "PRESIDENT"
+      ? [{ label: "운영진 관리", to: `/clubs/${clubId}/staff` }]
+      : []),
+    { label: "받은 초대", to: "/staff-invitations", exact: true },
   ];
 
   const initials = user?.name?.[0]?.toUpperCase() ?? "?";
@@ -103,7 +108,9 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
 
         <nav className="mt-4 flex flex-1 flex-col gap-1">
           {nav.map(item => {
-            const active = location.pathname.startsWith(item.to);
+            const active = "exact" in item && item.exact
+              ? location.pathname === item.to
+              : location.pathname.startsWith(item.to);
             return (
               <Link
                 key={item.to}
@@ -122,10 +129,6 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
           {/* TODO: 폼 연동 – API 미제공 */}
           <span className="flex h-10 cursor-not-allowed items-center rounded-lg px-3 text-sm text-[var(--sidebar-text-muted)] opacity-50">
             폼 연동
-          </span>
-          {/* TODO: 운영진 관리 – API 미제공 */}
-          <span className="flex h-10 cursor-not-allowed items-center rounded-lg px-3 text-sm text-[var(--sidebar-text-muted)] opacity-50">
-            운영진 관리
           </span>
         </nav>
 

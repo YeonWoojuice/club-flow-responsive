@@ -6,11 +6,14 @@ import com.clubflow.backend.google.dto.GoogleConnectionStatusResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
@@ -42,6 +45,12 @@ public class GoogleDataController {
         return googleDataOAuthService.status(oidcUser.getSubject());
     }
 
+    @DeleteMapping("/connection")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void disconnect(@AuthenticationPrincipal OidcUser oidcUser) {
+        googleDataOAuthService.disconnect(oidcUser.getSubject());
+    }
+
     @GetMapping("/oauth/authorization-url")
     public GoogleAuthorizationUrlResponse authorizationUrl(
             @AuthenticationPrincipal OidcUser oidcUser,
@@ -68,7 +77,7 @@ public class GoogleDataController {
         String expectedState = (String) session.getAttribute(STATE_SESSION_KEY);
         session.removeAttribute(STATE_SESSION_KEY);
         session.removeAttribute(RETURN_PATH_SESSION_KEY);
-        if (error != null || code == null || !stateMatches(expectedState, state)) {
+        if (oidcUser == null || error != null || code == null || !stateMatches(expectedState, state)) {
             response.sendRedirect(frontendUrl + returnPath + "?google=error");
             return;
         }

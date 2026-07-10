@@ -1,16 +1,19 @@
-export type MemberJoinedSource = "APPLICATION_ACCEPT" | "MANUAL" | "RETENTION";
-export type GenerationMemberStatus = "ACTIVE" | "INACTIVE" | "WITHDRAWN";
+import type { components } from "./api.gen";
 
-export type GenerationMember = {
-  id: string;
-  generationId: string;
-  generationName: string;
-  personId: string;
-  name: string;
-  email: string;
+type Schemas = components["schemas"];
+type MemberSchema = Schemas["GenerationMemberResponse"];
+type HistorySchema = Schemas["GenerationMemberStatusHistoryResponse"];
+
+export type MemberJoinedSource = NonNullable<MemberSchema["joinedSource"]>;
+export type GenerationMemberStatus = NonNullable<MemberSchema["status"]>;
+
+export type GenerationMember = Required<Omit<MemberSchema, "phone">> & {
   phone: string | null;
-  studentNumber: string;
-  joinedSource: MemberJoinedSource;
-  status: GenerationMemberStatus;
-  createdAt: string;
+};
+
+export type GenerationMemberStatusChangeRequest =
+  Schemas["ChangeGenerationMemberStatusRequest"];
+
+export type GenerationMemberStatusHistory = Required<Omit<HistorySchema, "reason">> & {
+  reason: string | null;
 };

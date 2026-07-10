@@ -101,7 +101,8 @@ public class ApplicationService {
             UUID applicationId,
             ApplicationStatus targetStatus
     ) {
-        Application application = getApplication(applicationId);
+        Application application = applicationRepository.findByIdForUpdate(applicationId)
+                .orElseThrow(() -> new NotFoundException("지원서를 찾을 수 없습니다."));
         clubAccessService.requireAccessibleClub(
                 googleSub,
                 application.getGeneration().getClub().getId()

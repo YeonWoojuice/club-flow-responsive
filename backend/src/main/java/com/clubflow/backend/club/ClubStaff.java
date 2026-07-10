@@ -68,6 +68,41 @@ public class ClubStaff {
         );
     }
 
+    public static ClubStaff createApproved(Club club, User user, ClubStaffRole role) {
+        validateAssignableRole(role);
+        return new ClubStaff(club, user, role, ClubStaffStatus.APPROVED, Instant.now());
+    }
+
+    public void changeRole(ClubStaffRole role) {
+        validateAssignableRole(role);
+        this.role = role;
+        this.updatedAt = Instant.now();
+    }
+
+    public void revoke() {
+        if (status == ClubStaffStatus.REVOKED) {
+            return;
+        }
+        if (role == ClubStaffRole.PRESIDENT) {
+            throw new IllegalStateException("회장 권한은 해제할 수 없습니다.");
+        }
+        this.status = ClubStaffStatus.REVOKED;
+        this.updatedAt = Instant.now();
+    }
+
+    public void approveAgain(ClubStaffRole role) {
+        validateAssignableRole(role);
+        this.role = role;
+        this.status = ClubStaffStatus.APPROVED;
+        this.updatedAt = Instant.now();
+    }
+
+    private static void validateAssignableRole(ClubStaffRole role) {
+        if (role == null || role == ClubStaffRole.PRESIDENT) {
+            throw new IllegalArgumentException("초대하거나 변경할 수 없는 운영진 역할입니다.");
+        }
+    }
+
     public UUID getId() {
         return id;
     }

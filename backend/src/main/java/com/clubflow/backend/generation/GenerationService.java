@@ -75,4 +75,9 @@ public class GenerationService {
         return generationRepository.findByIdAndClubId(generationId, clubId)
                 .orElseThrow(() -> new NotFoundException("해당 동아리의 학기를 찾을 수 없습니다."));
     }
+
+    public Generation requireGenerationInClubForUpdate(UUID generationId, UUID clubId) {
+        return generationRepository.findForUpdateByIdAndClubId(generationId, clubId)
+                .orElseThrow(() -> new NotFoundException("해당 동아리의 학기를 찾을 수 없습니다."));
+    }
 }

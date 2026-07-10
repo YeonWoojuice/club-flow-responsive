@@ -79,6 +79,13 @@ public class GoogleDataOAuthService {
     }
 
     @Transactional
+    public void disconnect(String googleSub) {
+        User user = userService.getByGoogleSub(googleSub);
+        connectionRepository.findByUserId(user.getId())
+                .ifPresent(connectionRepository::delete);
+    }
+
+    @Transactional
     public void connect(String googleSub, String code) {
         requireConfiguration();
         TokenResponse token = exchangeCode(code);
@@ -99,11 +106,12 @@ public class GoogleDataOAuthService {
         String encryptedRefresh = token.refreshToken() == null ? null : tokenCipher.encrypt(token.refreshToken());
         String scope = Optional.ofNullable(token.scope()).orElse(SCOPE);
         Instant expiresAt = Instant.now().plus(token.expiresIn(), ChronoUnit.SECONDS);
-        GoogleConnection connection = connectionRepository.findByUserId(user.getId())
+        Optional<GoogleConnection> existingConnection = connectionRepository.findByUserId(user.getId());
+        GoogleConnection connection = existingConnection
                 .orElseGet(() -> GoogleConnection.create(
                         user, userInfo.email(), encryptedAccess, encryptedRefresh, scope, expiresAt
                 ));
-        if (connectionRepository.findByUserId(user.getId()).isPresent()) {
+        if (existingConnection.isPresent()) {
             connection.updateTokens(userInfo.email(), encryptedAccess, encryptedRefresh, scope, expiresAt);
         }
         connectionRepository.save(connection);

@@ -5,6 +5,8 @@
 ```text
 users 1 ── N club_staffs N ── 1 clubs
   │                                │
+  ├── 0..1 google_connections      │
+  ├── N club_staff_invitations N ──┤
   └──────── created_by_user_id ────┤
                                    ├── N generations
                                    └── N persons
@@ -14,6 +16,8 @@ generations 1 ── N applications N ── 1 persons
       │                 └── N application_answers
       │
       └── N generation_members N ── 1 persons
+                    │
+                    └── N generation_member_status_histories
 ```
 
 - `users`는 Google 로그인을 완료한 운영진 사용자다.
@@ -34,6 +38,24 @@ generations 1 ── N applications N ── 1 persons
 | last_login_at | TIMESTAMPTZ | NOT NULL |
 
 사용자 식별 기준은 이메일이 아니라 `google_sub`이다.
+
+## google_connections
+
+| 컬럼 | 타입 | 제약 |
+|---|---|---|
+| id | UUID | PK |
+| user_id | UUID | FK → users.id, UNIQUE |
+| google_account_email | VARCHAR(255) | NOT NULL |
+| encrypted_access_token | TEXT | NOT NULL |
+| encrypted_refresh_token | TEXT | NULL 허용 |
+| scope | TEXT | NOT NULL |
+| expires_at | TIMESTAMPTZ | NOT NULL |
+| created_at | TIMESTAMPTZ | NOT NULL |
+| updated_at | TIMESTAMPTZ | NOT NULL |
+
+- Google Sheet 읽기용 별도 OAuth 연결이며 사용자 한 명당 하나만 저장한다.
+- 접근·갱신 토큰은 AES-256-GCM으로 암호화된 값만 저장한다.
+- Sheet 원본 데이터는 이 테이블에 저장하지 않는다.
 
 ## clubs
 
@@ -61,6 +83,24 @@ generations 1 ── N applications N ── 1 persons
 - 한 사용자는 같은 동아리에 한 번만 등록된다.
 - 대시보드 접근은 `status=APPROVED`인 경우만 허용한다.
 - 동아리 생성자는 `PRESIDENT/APPROVED`로 즉시 등록된다.
+
+## club_staff_invitations
+
+| 컬럼 | 타입 | 제약 |
+|---|---|---|
+| id | UUID | PK |
+| club_id | UUID | FK → clubs.id |
+| email | VARCHAR(255) | NOT NULL, 소문자 저장 |
+| role | VARCHAR(30) | VICE_PRESIDENT, STAFF |
+| status | VARCHAR(30) | PENDING, ACCEPTED, REJECTED, CANCELED |
+| invited_by_user_id | UUID | FK → users.id |
+| created_at | TIMESTAMPTZ | NOT NULL |
+| responded_at | TIMESTAMPTZ | NULL 허용 |
+
+- 아직 ClubFlow에 로그인하지 않은 사람도 Google 이메일로 미리 초대할 수 있다.
+- 같은 동아리·이메일에는 `PENDING` 초대가 하나만 존재할 수 있다.
+- 로그인으로 확인된 이메일과 초대 이메일이 같은 사용자만 수락하거나 거절할 수 있다.
+- 초대 수락 시 기존에 해제된 `club_staffs` 행이 있으면 새 행을 만들지 않고 다시 승인한다.
 
 ## generations
 
@@ -144,8 +184,27 @@ generations 1 ── N applications N ── 1 persons
 
 - `UNIQUE(generation_id, person_id)`로 같은 학기의 중복 부원을 방지한다.
 - 지원서를 합격 처리하면 `APPLICATION_ACCEPT/ACTIVE`로 생성한다.
+- 이전 학기 부원을 이월하면 `RETENTION/ACTIVE`로 생성한다.
 - 동아리는 generation을 통해 판별하므로 중복 `club_id`를 저장하지 않는다.
+
+## generation_member_status_histories
+
+| 컬럼 | 타입 | 제약 |
+|---|---|---|
+| id | UUID | PK |
+| generation_member_id | UUID | FK → generation_members.id |
+| previous_status | VARCHAR(20) | ACTIVE, INACTIVE, WITHDRAWN |
+| new_status | VARCHAR(20) | ACTIVE, INACTIVE, WITHDRAWN |
+| reason | VARCHAR(500) | NULL 허용 |
+| changed_by_user_id | UUID | FK → users.id |
+| changed_at | TIMESTAMPTZ | NOT NULL |
+
+- 상태가 실제로 바뀔 때만 이력을 한 건 저장한다.
+- 탈퇴(`WITHDRAWN`) 처리에는 사유가 반드시 필요하다.
+- 변경자와 변경 시간을 남겨 운영진이 상태 변경 경위를 확인할 수 있게 한다.
+- 같은 상태를 다시 요청하면 이력을 중복 생성하지 않는다.
 
 ## 외부 데이터 동기화
 
-Google Form/Sheet 실제 연동과 외부 동기화 테이블은 현재 MVP에서 제외한다. 수동 지원자 등록 흐름이 안정된 뒤 별도 마이그레이션으로 추가한다.
+Google Sheet 읽기 권한은 `google_connections`에 저장한다. 원본 파일과 Sheet 행은 별도로 보관하지 않는다.
+주기 동기화, 가져오기 이력, 저장된 열 연결 설정은 후속 범위다.

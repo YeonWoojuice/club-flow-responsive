@@ -48,6 +48,25 @@ describe("apiRequest", () => {
     expect(new Headers(requestOptions.headers).get("X-CSRF-TOKEN")).toBe("csrf-token");
   });
 
+  it("파일 업로드에서는 브라우저가 multipart 경계를 만들도록 Content-Type을 직접 지정하지 않는다", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ headerName: "X-CSRF-TOKEN", token: "csrf-token" }))
+      .mockResolvedValueOnce(jsonResponse({ tables: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { apiRequest } = await import("./http");
+    const body = new FormData();
+    body.append("file", new File(["email\na@example.com"], "members.csv", { type: "text/csv" }));
+
+    await apiRequest("/api/clubs/club-1/member-retention/file/parse", {
+      method: "POST",
+      body,
+    });
+
+    const requestOptions = fetchMock.mock.calls[1][1] as RequestInit;
+    expect(new Headers(requestOptions.headers).get("Content-Type")).toBeNull();
+    expect(requestOptions.body).toBe(body);
+  });
+
   it("쓰기 요청이 403이면 CSRF 토큰을 갱신해 한 번만 재시도한다", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ headerName: "X-CSRF-TOKEN", token: "stale-token" }))

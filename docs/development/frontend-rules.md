@@ -116,8 +116,12 @@ src/
 /clubs/:clubId/generations                  학기 관리
 /clubs/:clubId/applications                 지원자 목록
 /clubs/:clubId/applications/new             수동 지원자 등록
+/clubs/:clubId/applications/import          Google Sheet 지원자 가져오기
 /clubs/:clubId/applications/:applicationId  지원서 상세
 /clubs/:clubId/members                      부원 목록
+/clubs/:clubId/members/retention            부원 이월
+/clubs/:clubId/staff                        회장 전용 운영진 관리
+/staff-invitations                          내가 받은 운영진 초대
 ```
 
 - 보호 페이지는 `RequireAuth` 아래에 둡니다.

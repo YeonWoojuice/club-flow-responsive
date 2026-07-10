@@ -69,6 +69,20 @@ public class Application {
         return new Application(generation, person, ApplicationSourceType.MANUAL);
     }
 
+    public static Application createFromGoogleForm(
+            Generation generation,
+            Person person,
+            Instant submittedAt
+    ) {
+        Application application = new Application(
+                generation,
+                person,
+                ApplicationSourceType.GOOGLE_FORM
+        );
+        application.submittedAt = submittedAt;
+        return application;
+    }
+
     public void changeStatus(ApplicationStatus targetStatus) {
         if (status == targetStatus) {
             return;

@@ -28,7 +28,10 @@ export function ClubListPage() {
         <section className="mt-8 rounded-[12px] border border-[var(--border-subtle)] bg-white p-6 shadow-sm sm:p-9">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div><h1 className="text-2xl font-extrabold">내 동아리</h1><p className="mt-2 text-sm text-[var(--text-secondary)]">승인된 운영진 권한이 있는 동아리입니다.</p></div>
-            <Link to="/clubs/new" className="rounded-[7px] bg-[var(--navy)] px-4 py-3 text-xs font-extrabold text-white">새 동아리 만들기</Link>
+            <div className="flex flex-wrap gap-2">
+              <Link to="/staff-invitations" className="rounded-[7px] border border-[var(--border)] bg-white px-4 py-3 text-xs font-extrabold">받은 초대</Link>
+              <Link to="/clubs/new" className="rounded-[7px] bg-[var(--navy)] px-4 py-3 text-xs font-extrabold text-white">새 동아리 만들기</Link>
+            </div>
           </div>
           {loading && <p className="mt-8 text-sm text-[var(--text-secondary)]">불러오는 중...</p>}
           {error && <p role="alert" className="mt-8 text-sm font-bold text-[var(--danger)]">{error}</p>}

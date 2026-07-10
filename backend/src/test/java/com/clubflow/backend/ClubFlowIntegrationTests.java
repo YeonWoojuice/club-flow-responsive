@@ -20,6 +20,7 @@ import com.clubflow.backend.generation.GenerationService;
 import com.clubflow.backend.generation.dto.CreateGenerationRequest;
 import com.clubflow.backend.generation.dto.GenerationResponse;
 import com.clubflow.backend.member.GenerationMemberRepository;
+import com.clubflow.backend.member.GenerationMemberStatusHistoryRepository;
 import com.clubflow.backend.person.PersonRepository;
 import com.clubflow.backend.user.User;
 import com.clubflow.backend.user.UserRepository;
@@ -33,6 +34,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -81,8 +88,12 @@ class ClubFlowIntegrationTests {
     @Autowired
     GenerationMemberRepository generationMemberRepository;
 
+    @Autowired
+    GenerationMemberStatusHistoryRepository statusHistoryRepository;
+
     @BeforeEach
     void setUp() {
+        statusHistoryRepository.deleteAll();
         applicationAnswerRepository.deleteAll();
         generationMemberRepository.deleteAll();
         applicationRepository.deleteAll();
@@ -194,5 +205,81 @@ class ClubFlowIntegrationTests {
                 application.id(),
                 ApplicationStatus.REJECTED
         )).isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void 지원서를_동시에_합격과_불합격_처리해도_최종_상태와_부원_등록이_일치한다() throws Exception {
+        userService.synchronizeGoogleUser(
+                "google-sub-001", "owner@example.com", "회장", null
+        );
+        ClubResponse club = clubService.createClub(
+                "google-sub-001", new CreateClubRequest("아우내", "테스트 동아리")
+        );
+        GenerationResponse generation = generationService.create(
+                "google-sub-001",
+                club.id(),
+                new CreateGenerationRequest(
+                        "2026-2 학기",
+                        LocalDate.of(2026, 7, 1),
+                        LocalDate.of(2026, 12, 31)
+                )
+        );
+        ApplicationDetailResponse application = applicationService.createManual(
+                "google-sub-001",
+                club.id(),
+                new ManualApplicationRequest(
+                        generation.id(),
+                        "동시 처리 지원자",
+                        "concurrent@example.com",
+                        null,
+                        "20260002",
+                        List.of(new ApplicationAnswerRequest("motivation", "지원 동기", "동시 처리 테스트"))
+                )
+        );
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try {
+            Future<ApplicationStatus> accepted = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return applicationService.changeStatus(
+                        "google-sub-001", application.id(), ApplicationStatus.ACCEPTED
+                ).status();
+            });
+            Future<ApplicationStatus> rejected = executor.submit(() -> {
+                ready.countDown();
+                start.await();
+                return applicationService.changeStatus(
+                        "google-sub-001", application.id(), ApplicationStatus.REJECTED
+                ).status();
+            });
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+
+            int successCount = 0;
+            int conflictCount = 0;
+            for (Future<ApplicationStatus> result : List.of(accepted, rejected)) {
+                try {
+                    result.get(10, TimeUnit.SECONDS);
+                    successCount++;
+                } catch (ExecutionException exception) {
+                    assertThat(exception.getCause()).isInstanceOf(ConflictException.class);
+                    conflictCount++;
+                }
+            }
+
+            assertThat(successCount).isEqualTo(1);
+            assertThat(conflictCount).isEqualTo(1);
+            ApplicationStatus finalStatus = applicationRepository.findById(application.id())
+                    .orElseThrow()
+                    .getStatus();
+            assertThat(finalStatus).isIn(ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED);
+            assertThat(generationMemberRepository.count())
+                    .isEqualTo(finalStatus == ApplicationStatus.ACCEPTED ? 1 : 0);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 }

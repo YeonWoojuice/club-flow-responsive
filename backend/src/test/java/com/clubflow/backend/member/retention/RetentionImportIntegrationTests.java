@@ -21,6 +21,7 @@ import com.clubflow.backend.generation.dto.GenerationResponse;
 import com.clubflow.backend.generation.dto.UpdateGenerationRequest;
 import com.clubflow.backend.member.GenerationMember;
 import com.clubflow.backend.member.GenerationMemberRepository;
+import com.clubflow.backend.member.GenerationMemberStatusHistoryRepository;
 import com.clubflow.backend.member.GenerationMemberStatus;
 import com.clubflow.backend.member.MemberJoinedSource;
 import com.clubflow.backend.member.retention.dto.RetentionApplyRequest;
@@ -58,6 +59,7 @@ class RetentionImportIntegrationTests {
     @Autowired GenerationService generationService;
     @Autowired ApplicationService applicationService;
     @Autowired GenerationMemberRepository generationMemberRepository;
+    @Autowired GenerationMemberStatusHistoryRepository statusHistoryRepository;
     @Autowired ApplicationAnswerRepository applicationAnswerRepository;
     @Autowired ApplicationRepository applicationRepository;
     @Autowired PersonRepository personRepository;
@@ -68,6 +70,7 @@ class RetentionImportIntegrationTests {
 
     @BeforeEach
     void setUp() {
+        statusHistoryRepository.deleteAll();
         applicationAnswerRepository.deleteAll();
         generationMemberRepository.deleteAll();
         applicationRepository.deleteAll();

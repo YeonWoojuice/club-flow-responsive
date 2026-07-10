@@ -18,6 +18,11 @@
 - 동아리 생성
 - 생성자에게 PRESIDENT/APPROVED 권한 부여
 - 접근 가능한 동아리 목록
+- 회장이 Google 이메일로 부회장·운영진 초대
+- 초대받은 사용자의 초대 수락·거절
+- 회장의 운영진 역할 변경·접근 권한 해제
+- 같은 동아리·이메일의 대기 초대 중복 방지
+- 운영진 관리 상세 규칙은 [`docs/features/staff-management/staff_flow.md`](../features/staff-management/staff_flow.md)를 따른다.
 
 ### 학기
 
@@ -29,7 +34,7 @@
 ### 지원자
 
 - 이름, 이메일, 연락처, 학번으로 수동 등록
-- CSV/XLSX 파일 또는 Google Form 응답 Sheet에서 지원자 데이터 가져오기
+- Google Form 응답 Sheet 또는 일반 Google Sheet에서 지원자 데이터 가져오기
 - 이메일 소문자 정규화
 - 문항별 지원서 답변 저장
 - 같은 학기 중복 지원 방지
@@ -42,6 +47,14 @@
 - 지원자 합격 시 학기 부원 자동 생성
 - 동일 합격 요청에 대한 중복 부원 방지
 - 학기별 부원 기록 조회
+- 부원 상태를 활동 중·비활동·탈퇴로 변경
+- 부원 상태 변경 사유·변경자·변경 시간 이력 조회
+- 종료된 이전 학기의 잔류 부원을 활성 새 학기로 이월
+- 표 파일(CSV·엑셀), Google Form 응답 Sheet, 일반 Google Sheet에서 이월 대상 확인
+- 이메일을 기준으로 원본 안의 중복과 새 학기에 이미 존재하는 부원 방지
+- 이월 확정 전에 행별 판정과 제외 사유 미리보기
+- 부원 이월 상세 규칙은 [`docs/features/member-retention/retention_flow.md`](../features/member-retention/retention_flow.md)를 따른다.
+- 부원 상태 변경 상세 규칙은 [`docs/features/member-status/status_flow.md`](../features/member-status/status_flow.md)를 따른다.
 
 ## 상태 정책
 
@@ -56,7 +69,7 @@
 ## 보류
 
 - Google Form/Sheet의 주기적 동기화와 자동 가져오기 배치
+- 표 파일(CSV·엑셀)을 이용한 지원자 가져오기
 - 원본 파일 보관, 가져오기 이력, 저장된 필드 매핑 재사용
-- 운영진 초대
 - 회비, 행사, 활동 관리
-- 부원 자동 이월
+- Google Sheet 주기 동기화와 자동 이월

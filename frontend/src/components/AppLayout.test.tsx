@@ -45,4 +45,17 @@ describe("AppLayout 로그아웃", () => {
     expect(clear).not.toHaveBeenCalled();
     expect(screen.getByText("현재 화면 유지")).toBeInTheDocument();
   });
+
+  it("회장에게만 운영진 관리 링크를 보여주고 받은 초대 링크는 모두에게 보여준다", async () => {
+    getClub.mockResolvedValueOnce({ id: "club-1", name: "ClubFlow", role: "STAFF" });
+
+    render(
+      <MemoryRouter>
+        <AppLayout clubId="club-1"><div>운영진 화면</div></AppLayout>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("link", { name: "받은 초대" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "운영진 관리" })).not.toBeInTheDocument();
+  });
 });
