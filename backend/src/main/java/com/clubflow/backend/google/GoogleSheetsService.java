@@ -4,11 +4,15 @@ import com.clubflow.backend.common.ConflictException;
 import com.clubflow.backend.common.NotFoundException;
 import com.clubflow.backend.member.retention.dto.ParsedTableResponse;
 import com.clubflow.backend.member.retention.dto.ParsedWorkbookResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriUtils;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,15 +21,22 @@ import java.util.regex.Pattern;
 @Service
 public class GoogleSheetsService {
 
+    private static final Logger log = LoggerFactory.getLogger(GoogleSheetsService.class);
     private static final Pattern SPREADSHEET_ID = Pattern.compile("^[A-Za-z0-9_-]+$");
     private static final int MAX_ROWS = 2_000;
     private static final int MAX_COLUMNS = 100;
 
     private final GoogleDataOAuthService googleDataOAuthService;
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient;
 
+    @Autowired
     public GoogleSheetsService(GoogleDataOAuthService googleDataOAuthService) {
+        this(googleDataOAuthService, RestClient.create());
+    }
+
+    GoogleSheetsService(GoogleDataOAuthService googleDataOAuthService, RestClient restClient) {
         this.googleDataOAuthService = googleDataOAuthService;
+        this.restClient = restClient;
     }
 
     public ParsedWorkbookResponse readTables(String googleSub, String spreadsheetId) {
@@ -50,11 +61,16 @@ public class GoogleSheetsService {
             }
             return new ParsedWorkbookResponse(tables);
         } catch (RestClientResponseException exception) {
+            log.warn("Google Sheets API 요청 실패: status={}, body={}",
+                    exception.getStatusCode().value(), exception.getResponseBodyAsString());
             if (exception.getStatusCode().value() == 404) {
                 throw new NotFoundException("Google Sheet를 찾을 수 없습니다.");
             }
             if (exception.getStatusCode().value() == 401 || exception.getStatusCode().value() == 403) {
                 throw new ConflictException("Google Sheet 접근 권한을 확인하거나 다시 연결해 주세요.");
+            }
+            if (exception.getStatusCode().value() == 400) {
+                throw new ConflictException("Google Sheet의 탭 이름 또는 범위를 읽지 못했습니다.");
             }
             throw new ConflictException("Google Sheet를 읽지 못했습니다. 잠시 후 다시 시도해 주세요.");
         }
@@ -62,9 +78,9 @@ public class GoogleSheetsService {
 
     private ValuesResponse readValues(String accessToken, String spreadsheetId, String title) {
         String range = UriUtils.encodePathSegment("'" + title.replace("'", "''") + "'", StandardCharsets.UTF_8);
-        String url = "https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId + "/values/" + range;
+        URI uri = URI.create("https://sheets.googleapis.com/v4/spreadsheets/" + spreadsheetId + "/values/" + range);
         return restClient.get()
-                .uri(url)
+                .uri(uri)
                 .headers(headers -> headers.setBearerAuth(accessToken))
                 .retrieve()
                 .body(ValuesResponse.class);
