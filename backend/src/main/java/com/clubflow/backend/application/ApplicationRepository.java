@@ -51,6 +51,23 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
             @Param("status") ApplicationStatus status
     );
 
+    @Query("""
+            select application
+            from Application application
+            join fetch application.generation generation
+            join fetch generation.club club
+            join fetch application.person person
+            where generation.id = :generationId
+              and application.status = :status
+              and application.id in :applicationIds
+            order by application.submittedAt asc
+            """)
+    List<Application> findAllByGenerationIdAndStatusAndIdIn(
+            @Param("generationId") UUID generationId,
+            @Param("status") ApplicationStatus status,
+            @Param("applicationIds") Set<UUID> applicationIds
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select application
@@ -65,6 +82,24 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
     List<Application> findAllByGenerationIdAndStatusForUpdate(
             @Param("generationId") UUID generationId,
             @Param("status") ApplicationStatus status
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select application
+            from Application application
+            join fetch application.generation generation
+            join fetch generation.club club
+            join fetch application.person person
+            where generation.id = :generationId
+              and application.status = :status
+              and application.id in :applicationIds
+            order by application.submittedAt asc
+            """)
+    List<Application> findAllByGenerationIdAndStatusAndIdInForUpdate(
+            @Param("generationId") UUID generationId,
+            @Param("status") ApplicationStatus status,
+            @Param("applicationIds") Set<UUID> applicationIds
     );
 
     @Query("""

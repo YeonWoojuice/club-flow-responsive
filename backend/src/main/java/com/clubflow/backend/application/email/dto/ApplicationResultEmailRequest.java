@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.util.Set;
 import java.util.UUID;
 
 public record ApplicationResultEmailRequest(
@@ -23,6 +24,9 @@ public record ApplicationResultEmailRequest(
         String bodyTemplate,
 
         @Size(max = 2048, message = "카카오톡 링크는 2048자 이하여야 합니다.")
-        String kakaoLink
+        String kakaoLink,
+
+        @Size(max = 100, message = "한 번에 선택할 수 있는 지원자는 100명 이하입니다.")
+        Set<UUID> applicationIds
 ) {
 }

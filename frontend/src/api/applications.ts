@@ -24,9 +24,10 @@ export function getApplication(applicationId: string) {
 export function changeApplicationStatus(
   applicationId: string,
   status: ApplicationStatus,
+  reason?: string,
 ) {
   return apiRequest<ApplicationDetail>(`/api/applications/${applicationId}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, ...(reason?.trim() ? { reason: reason.trim() } : {}) }),
   });
 }

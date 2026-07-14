@@ -35,11 +35,21 @@ class GenerationMemberTest {
     @Test
     void 탈퇴_상태는_다른_상태로_되돌릴_수_없다() {
         GenerationMember member = createMember();
+        member.changeStatus(GenerationMemberStatus.INACTIVE);
         member.changeStatus(GenerationMemberStatus.WITHDRAWN);
 
         assertThatThrownBy(() -> member.changeStatus(GenerationMemberStatus.ACTIVE))
                 .isInstanceOf(ConflictException.class)
                 .hasMessage("탈퇴한 부원의 상태는 변경할 수 없습니다.");
+    }
+
+    @Test
+    void 활동중인_부원은_먼저_비활동으로_바꿔야_탈퇴할_수_있다() {
+        GenerationMember member = createMember();
+
+        assertThatThrownBy(() -> member.changeStatus(GenerationMemberStatus.WITHDRAWN))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("활동 중인 부원은 먼저 비활동으로 변경한 뒤 탈퇴 처리해 주세요.");
     }
 
     @Test

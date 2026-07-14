@@ -6,6 +6,7 @@ export type ApplicationResultEmailRequest = {
   subjectTemplate: string;
   bodyTemplate: string;
   kakaoLink?: string;
+  applicationIds?: string[];
 };
 
 export type ApplicationResultEmailRecipient = {

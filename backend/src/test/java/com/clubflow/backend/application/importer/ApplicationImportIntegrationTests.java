@@ -5,6 +5,7 @@ import com.clubflow.backend.application.Application;
 import com.clubflow.backend.application.ApplicationAnswer;
 import com.clubflow.backend.application.ApplicationAnswerRepository;
 import com.clubflow.backend.application.ApplicationRepository;
+import com.clubflow.backend.application.ApplicationStatusHistoryRepository;
 import com.clubflow.backend.application.ApplicationService;
 import com.clubflow.backend.application.ApplicationSourceType;
 import com.clubflow.backend.application.dto.ApplicationAnswerRequest;
@@ -61,6 +62,7 @@ class ApplicationImportIntegrationTests {
     @Autowired GenerationMemberRepository generationMemberRepository;
     @Autowired GenerationMemberStatusHistoryRepository statusHistoryRepository;
     @Autowired ApplicationRepository applicationRepository;
+    @Autowired ApplicationStatusHistoryRepository applicationStatusHistoryRepository;
     @Autowired PersonRepository personRepository;
     @Autowired GenerationRepository generationRepository;
     @Autowired ClubStaffRepository clubStaffRepository;
@@ -72,6 +74,7 @@ class ApplicationImportIntegrationTests {
         statusHistoryRepository.deleteAll();
         applicationAnswerRepository.deleteAll();
         generationMemberRepository.deleteAll();
+        applicationStatusHistoryRepository.deleteAll();
         applicationRepository.deleteAll();
         personRepository.deleteAll();
         generationRepository.deleteAll();

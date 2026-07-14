@@ -88,10 +88,15 @@ public class Application {
             return;
         }
         if (status.isTerminal()) {
-            throw new ConflictException("최종 처리된 지원 상태는 변경할 수 없습니다.");
+            throw new ConflictException("취소된 지원 상태는 변경할 수 없습니다.");
         }
         if (targetStatus == ApplicationStatus.SUBMITTED) {
             throw new ConflictException("지원 상태를 접수 상태로 되돌릴 수 없습니다.");
+        }
+        if ((status == ApplicationStatus.ACCEPTED || status == ApplicationStatus.REJECTED)
+                && targetStatus != ApplicationStatus.ACCEPTED
+                && targetStatus != ApplicationStatus.REJECTED) {
+            throw new ConflictException("합격 또는 불합격 결과는 메일 발송 전 반대 결과로만 정정할 수 있습니다.");
         }
         this.status = targetStatus;
         this.updatedAt = Instant.now();

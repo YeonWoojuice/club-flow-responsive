@@ -104,6 +104,10 @@ public class GenerationMember {
         if (status == GenerationMemberStatus.WITHDRAWN) {
             throw new ConflictException("탈퇴한 부원의 상태는 변경할 수 없습니다.");
         }
+        if (status == GenerationMemberStatus.ACTIVE
+                && targetStatus == GenerationMemberStatus.WITHDRAWN) {
+            throw new ConflictException("활동 중인 부원은 먼저 비활동으로 변경한 뒤 탈퇴 처리해 주세요.");
+        }
         this.status = targetStatus;
         this.updatedAt = Instant.now();
         return true;

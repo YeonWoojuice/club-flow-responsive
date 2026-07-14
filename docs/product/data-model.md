@@ -153,8 +153,24 @@ generations 1 ── N applications N ── 1 persons
 | updated_at | TIMESTAMPTZ | NOT NULL |
 
 - `UNIQUE(generation_id, person_id)`로 같은 학기의 중복 지원을 방지한다.
-- `ACCEPTED`, `REJECTED`, `CANCELED`은 MVP의 최종 상태이며 다시 변경하지 않는다.
+- `ACCEPTED`, `REJECTED`는 현재 결과의 메일이 `NOT_SENT` 또는 `FAILED`일 때만 서로 정정할 수 있다.
+- `CANCELED`은 최종 상태이며 다시 변경하지 않는다.
 - 동아리는 generation을 통해 판별하므로 중복 `club_id`를 저장하지 않는다.
+
+## application_status_histories
+
+| 컬럼 | 타입 | 제약 |
+|---|---|---|
+| id | UUID | PK |
+| application_id | UUID | FK → applications.id |
+| previous_status | VARCHAR(20) | 지원 상태 |
+| new_status | VARCHAR(20) | 지원 상태 |
+| reason | VARCHAR(500) | NULL 허용, 결과 정정 시 필수 |
+| changed_by_user_id | UUID | FK → users.id |
+| changed_at | TIMESTAMPTZ | NOT NULL |
+
+- 실제 상태가 바뀔 때만 변경자·시각·사유를 기록한다.
+- 합격과 불합격을 서로 정정할 때는 사유가 필수다.
 
 ## application_answers
 
@@ -220,7 +236,7 @@ generations 1 ── N applications N ── 1 persons
 | updated_at | TIMESTAMPTZ | NOT NULL |
 
 - `UNIQUE(generation_id, person_id)`로 같은 학기의 중복 부원을 방지한다.
-- 지원서를 합격 처리하면 `APPLICATION_ACCEPT/ACTIVE`로 생성한다.
+- 합격 결과 메일이 `SENT`로 기록될 때 `APPLICATION_ACCEPT/ACTIVE`로 생성한다.
 - 이전 학기 부원을 이월하면 `RETENTION/ACTIVE`로 생성한다.
 - 기존·신규 부원의 회비 상태는 `UNKNOWN`으로 시작하고 회계 담당 운영진이 직접 확인한다.
 - 회비 상태는 납부 금액이나 회계 거래가 아니라 해당 학기의 확인 결과만 나타낸다.
@@ -242,6 +258,7 @@ generations 1 ── N applications N ── 1 persons
 - 탈퇴(`WITHDRAWN`) 처리에는 사유가 반드시 필요하다.
 - 변경자와 변경 시간을 남겨 운영진이 상태 변경 경위를 확인할 수 있게 한다.
 - 같은 상태를 다시 요청하면 이력을 중복 생성하지 않는다.
+- `ACTIVE`에서 바로 `WITHDRAWN`으로 바꿀 수 없으며 먼저 `INACTIVE`로 변경해야 한다.
 
 ## application_import_sources
 

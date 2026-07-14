@@ -8,6 +8,6 @@ public enum ApplicationStatus {
     CANCELED;
 
     public boolean isTerminal() {
-        return this == ACCEPTED || this == REJECTED || this == CANCELED;
+        return this == CANCELED;
     }
 }

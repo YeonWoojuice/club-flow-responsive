@@ -7,12 +7,13 @@
 ## 상태 규칙
 
 ```text
-ACTIVE   → INACTIVE 또는 WITHDRAWN
+ACTIVE   → INACTIVE
 INACTIVE → ACTIVE 또는 WITHDRAWN
 WITHDRAWN → 변경 불가
 ```
 
 - `ACTIVE`는 활동 중, `INACTIVE`는 비활동, `WITHDRAWN`은 탈퇴를 뜻한다.
+- 탈퇴 전에는 먼저 `INACTIVE`로 변경해 실수로 활동 중인 부원을 바로 탈퇴시키지 않게 한다.
 - 탈퇴는 마지막 상태이며 다시 활동 중이나 비활동으로 바꿀 수 없다.
 - 같은 상태를 다시 요청하면 성공으로 처리하지만 변경 이력은 만들지 않는다.
 - 탈퇴 사유는 필수이며, 다른 상태 변경 사유는 선택이다.

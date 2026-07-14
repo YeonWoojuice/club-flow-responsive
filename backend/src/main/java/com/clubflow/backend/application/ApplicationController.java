@@ -65,7 +65,8 @@ public class ApplicationController {
         return applicationService.changeStatus(
                 oidcUser.getSubject(),
                 applicationId,
-                request.status()
+                request.status(),
+                request.reason()
         );
     }
 }

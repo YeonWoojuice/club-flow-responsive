@@ -11,6 +11,8 @@ import com.clubflow.backend.common.ConflictException;
 import com.clubflow.backend.common.NotFoundException;
 import com.clubflow.backend.generation.Generation;
 import com.clubflow.backend.generation.GenerationService;
+import com.clubflow.backend.member.GenerationMemberService;
+import com.clubflow.backend.common.InvalidRequestException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ class ApplicationResultEmailPersistenceService {
     private final ApplicationResultEmailTemplateRenderer renderer;
     private final ClubAccessService clubAccessService;
     private final GenerationService generationService;
+    private final GenerationMemberService generationMemberService;
 
     ApplicationResultEmailPersistenceService(
             ApplicationRepository applicationRepository,
@@ -40,7 +43,8 @@ class ApplicationResultEmailPersistenceService {
             ApplicationResultEmailQueryService queryService,
             ApplicationResultEmailTemplateRenderer renderer,
             ClubAccessService clubAccessService,
-            GenerationService generationService
+            GenerationService generationService,
+            GenerationMemberService generationMemberService
     ) {
         this.applicationRepository = applicationRepository;
         this.batchRepository = batchRepository;
@@ -49,6 +53,7 @@ class ApplicationResultEmailPersistenceService {
         this.renderer = renderer;
         this.clubAccessService = clubAccessService;
         this.generationService = generationService;
+        this.generationMemberService = generationMemberService;
     }
 
     @Transactional
@@ -60,11 +65,10 @@ class ApplicationResultEmailPersistenceService {
         ClubStaff requester = clubAccessService.requireApplicationResultEmailManager(googleSub, clubId);
         validateDecision(request.decision());
         Generation generation = generationService.requireGenerationInClubForUpdate(request.generationId(), clubId);
-        List<Application> applications = applicationRepository.findAllByGenerationIdAndStatusForUpdate(
-                generation.getId(), request.decision()
-        );
+        List<Application> applications = findApplicationsForUpdate(generation.getId(), request);
         Map<UUID, ApplicationResultEmailQueryService.ResultEmailState> states = queryService.latestStates(
-                applications.stream().map(Application::getId).collect(Collectors.toSet())
+                applications.stream().map(Application::getId).collect(Collectors.toSet()),
+                request.decision()
         );
         List<Application> sendable = applications.stream()
                 .filter(application -> isSendable(states.get(application.getId())))
@@ -101,6 +105,13 @@ class ApplicationResultEmailPersistenceService {
                     message.getId(),
                     EmailSendResult.unknown(message.getId(), "메일 제공자의 결과를 확인하지 못했습니다.")
             ));
+            if (message.getStatus() == ApplicationResultEmailMessageStatus.SENT
+                    && batch.getDecision() == ApplicationStatus.ACCEPTED) {
+                generationMemberService.ensureAcceptedMember(
+                        message.getApplication().getGeneration(),
+                        message.getApplication().getPerson()
+                );
+            }
         }
         int sent = count(messages, ApplicationResultEmailMessageStatus.SENT);
         int failed = count(messages, ApplicationResultEmailMessageStatus.FAILED);
@@ -120,6 +131,25 @@ class ApplicationResultEmailPersistenceService {
         return ApplicationResultEmailMessage.create(
                 batch, application, normalize(request.kakaoLink()), rendered.subject(), rendered.body()
         );
+    }
+
+    private List<Application> findApplicationsForUpdate(
+            UUID generationId,
+            ApplicationResultEmailRequest request
+    ) {
+        Set<UUID> selectedIds = request.applicationIds() == null ? Set.of() : request.applicationIds();
+        if (selectedIds.isEmpty()) {
+            return applicationRepository.findAllByGenerationIdAndStatusForUpdate(
+                    generationId, request.decision()
+            );
+        }
+        List<Application> applications = applicationRepository.findAllByGenerationIdAndStatusAndIdInForUpdate(
+                generationId, request.decision(), selectedIds
+        );
+        if (applications.size() != selectedIds.size()) {
+            throw new InvalidRequestException("선택한 지원자의 학기 또는 합격·불합격 상태가 현재 요청과 일치하지 않습니다.");
+        }
+        return applications;
     }
 
     private boolean isSendable(ApplicationResultEmailQueryService.ResultEmailState state) {

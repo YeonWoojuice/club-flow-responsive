@@ -35,12 +35,23 @@ export type ApplicationSummary = {
   status: ApplicationStatus;
   resultEmailStatus: ApplicationResultEmailStatus;
   resultEmailSentAt: string | null;
+  generationMemberId: string | null;
+  generationMemberStatus: "ACTIVE" | "INACTIVE" | "WITHDRAWN" | null;
   sourceType: ApplicationSourceType;
   submittedAt: string;
 };
 
 export type ApplicationDetail = ApplicationSummary & {
   applicationAnswers: ApplicationAnswer[];
+  statusHistory: {
+    id: string;
+    previousStatus: ApplicationStatus;
+    newStatus: ApplicationStatus;
+    reason: string | null;
+    changedByUserId: string;
+    changedByName: string;
+    changedAt: string;
+  }[];
 };
 
 export type ManualApplicationInput = {

@@ -6,6 +6,8 @@ import com.clubflow.backend.application.ApplicationSourceType;
 import com.clubflow.backend.application.ApplicationStatus;
 import com.clubflow.backend.application.email.ApplicationResultEmailQueryService.ResultEmailState;
 import com.clubflow.backend.application.email.ApplicationResultEmailStatus;
+import com.clubflow.backend.member.GenerationMember;
+import com.clubflow.backend.member.GenerationMemberStatus;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,19 +28,17 @@ public record ApplicationDetailResponse(
         Instant submittedAt,
         ApplicationResultEmailStatus resultEmailStatus,
         Instant resultEmailSentAt,
+        UUID generationMemberId,
+        GenerationMemberStatus generationMemberStatus,
+        List<ApplicationStatusHistoryResponse> statusHistory,
         List<ApplicationAnswerResponse> applicationAnswers
 ) {
     public static ApplicationDetailResponse from(
             Application application,
-            List<ApplicationAnswer> answers
-    ) {
-        return from(application, answers, ResultEmailState.notSent());
-    }
-
-    public static ApplicationDetailResponse from(
-            Application application,
             List<ApplicationAnswer> answers,
-            ResultEmailState emailState
+            ResultEmailState emailState,
+            GenerationMember member,
+            List<ApplicationStatusHistoryResponse> statusHistory
     ) {
         return new ApplicationDetailResponse(
                 application.getId(),
@@ -55,6 +55,9 @@ public record ApplicationDetailResponse(
                 application.getSubmittedAt(),
                 emailState.status(),
                 emailState.sentAt(),
+                member == null ? null : member.getId(),
+                member == null ? null : member.getStatus(),
+                statusHistory,
                 answers.stream().map(ApplicationAnswerResponse::from).toList()
         );
     }

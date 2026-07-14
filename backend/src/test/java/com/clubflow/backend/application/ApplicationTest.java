@@ -13,16 +13,16 @@ import static org.mockito.Mockito.mock;
 class ApplicationTest {
 
     @Test
-    void 최종_상태는_다른_상태로_변경할_수_없다() {
+    void 결과_메일_발송_전에는_합격과_불합격을_서로_정정할_수_있다() {
         Application application = Application.createManual(
                 mock(Generation.class),
                 mock(Person.class)
         );
         application.changeStatus(ApplicationStatus.ACCEPTED);
 
-        assertThatThrownBy(() -> application.changeStatus(ApplicationStatus.REJECTED))
-                .isInstanceOf(ConflictException.class)
-                .hasMessage("최종 처리된 지원 상태는 변경할 수 없습니다.");
+        application.changeStatus(ApplicationStatus.REJECTED);
+
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
     }
 
     @Test
@@ -36,5 +36,25 @@ class ApplicationTest {
         assertThatCode(() -> application.changeStatus(ApplicationStatus.ACCEPTED))
                 .doesNotThrowAnyException();
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.ACCEPTED);
+    }
+
+    @Test
+    void 결과를_검토중으로_되돌릴_수_없다() {
+        Application application = Application.createManual(mock(Generation.class), mock(Person.class));
+        application.changeStatus(ApplicationStatus.ACCEPTED);
+
+        assertThatThrownBy(() -> application.changeStatus(ApplicationStatus.REVIEWING))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("반대 결과로만 정정");
+    }
+
+    @Test
+    void 취소된_지원서는_상태를_바꿀_수_없다() {
+        Application application = Application.createManual(mock(Generation.class), mock(Person.class));
+        application.changeStatus(ApplicationStatus.CANCELED);
+
+        assertThatThrownBy(() -> application.changeStatus(ApplicationStatus.REVIEWING))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("취소된 지원 상태는 변경할 수 없습니다.");
     }
 }

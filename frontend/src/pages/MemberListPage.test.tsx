@@ -185,7 +185,8 @@ describe("MemberListPage", () => {
 
   it("탈퇴 사유를 필수로 받고 확정 전 확인한다", async () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-    changeGenerationMemberStatus.mockResolvedValueOnce({ ...activeMember, status: "WITHDRAWN" });
+    listMembers.mockResolvedValueOnce([inactiveUnpaidMember]);
+    changeGenerationMemberStatus.mockResolvedValueOnce({ ...inactiveUnpaidMember, status: "WITHDRAWN" });
     renderPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "상태 변경" }));
@@ -199,7 +200,7 @@ describe("MemberListPage", () => {
 
     await waitFor(() => expect(confirm).toHaveBeenCalledOnce());
     await waitFor(() => expect(changeGenerationMemberStatus).toHaveBeenCalledWith(
-      "member-1",
+      "member-2",
       { status: "WITHDRAWN", reason: "개인 사정" },
     ));
     expect(screen.queryByRole("button", { name: "상태 변경" })).not.toBeInTheDocument();

@@ -922,7 +922,26 @@ export interface components {
             resultEmailStatus?: "NOT_SENT" | "PENDING" | "SENT" | "FAILED" | "UNKNOWN";
             /** Format: date-time */
             resultEmailSentAt?: string;
+            /** Format: uuid */
+            generationMemberId?: string;
+            /** @enum {string} */
+            generationMemberStatus?: "ACTIVE" | "INACTIVE" | "WITHDRAWN";
+            statusHistory?: components["schemas"]["ApplicationStatusHistoryResponse"][];
             applicationAnswers?: components["schemas"]["ApplicationAnswerResponse"][];
+        };
+        ApplicationStatusHistoryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            previousStatus?: "SUBMITTED" | "REVIEWING" | "ACCEPTED" | "REJECTED" | "CANCELED";
+            /** @enum {string} */
+            newStatus?: "SUBMITTED" | "REVIEWING" | "ACCEPTED" | "REJECTED" | "CANCELED";
+            reason?: string;
+            /** Format: uuid */
+            changedByUserId?: string;
+            changedByName?: string;
+            /** Format: date-time */
+            changedAt?: string;
         };
         JsonNode: unknown;
         ApplicationResultEmailRequest: {
@@ -933,6 +952,7 @@ export interface components {
             subjectTemplate: string;
             bodyTemplate: string;
             kakaoLink?: string;
+            applicationIds?: string[];
         };
         ApplicationResultEmailBatchResponse: {
             /** Format: uuid */
@@ -1092,6 +1112,7 @@ export interface components {
         UpdateApplicationStatusRequest: {
             /** @enum {string} */
             status: "SUBMITTED" | "REVIEWING" | "ACCEPTED" | "REJECTED" | "CANCELED";
+            reason?: string;
         };
         GoogleConnectionStatusResponse: {
             connected?: boolean;
@@ -1137,6 +1158,10 @@ export interface components {
             resultEmailStatus?: "NOT_SENT" | "PENDING" | "SENT" | "FAILED" | "UNKNOWN";
             /** Format: date-time */
             resultEmailSentAt?: string;
+            /** Format: uuid */
+            generationMemberId?: string;
+            /** @enum {string} */
+            generationMemberStatus?: "ACTIVE" | "INACTIVE" | "WITHDRAWN";
         };
         ApplicationImportSourceTableResponse: {
             source?: components["schemas"]["ApplicationImportSourceResponse"];
@@ -1152,9 +1177,9 @@ export interface components {
             lastLoginAt?: string;
         };
         CsrfToken: {
-            token?: string;
             headerName?: string;
             parameterName?: string;
+            token?: string;
         };
         CsrfTokenResponse: {
             headerName?: string;

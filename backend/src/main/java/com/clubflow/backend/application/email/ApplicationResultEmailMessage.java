@@ -138,6 +138,8 @@ public class ApplicationResultEmailMessage {
 
     public UUID getId() { return id; }
     public UUID getApplicationId() { return application.getId(); }
+    public Application getApplication() { return application; }
+    public com.clubflow.backend.application.ApplicationStatus getDecision() { return batch.getDecision(); }
     public ApplicationResultEmailMessageStatus getStatus() { return status; }
     public String getRecipientEmail() { return recipientEmail; }
     public String getMemberName() { return memberName; }

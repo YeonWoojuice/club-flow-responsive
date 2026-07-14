@@ -8,6 +8,7 @@ import com.clubflow.backend.application.email.dto.ApplicationResultEmailPreviewR
 import com.clubflow.backend.application.email.dto.ApplicationResultEmailRequest;
 import com.clubflow.backend.club.ClubAccessService;
 import com.clubflow.backend.common.NotFoundException;
+import com.clubflow.backend.common.InvalidRequestException;
 import com.clubflow.backend.common.ServiceUnavailableException;
 import com.clubflow.backend.generation.GenerationService;
 import org.springframework.stereotype.Service;
@@ -65,11 +66,10 @@ public class ApplicationResultEmailService {
         ApplicationResultEmailPersistenceService.validateDecision(request.decision());
         renderer.validate(request.subjectTemplate(), request.bodyTemplate(), request.kakaoLink());
         generationService.requireGenerationInClub(request.generationId(), clubId);
-        List<Application> applications = applicationRepository.findAllByGenerationIdAndStatus(
-                request.generationId(), request.decision()
-        );
+        List<Application> applications = findPreviewApplications(request);
         Map<UUID, ApplicationResultEmailQueryService.ResultEmailState> states = queryService.latestStates(
-                applications.stream().map(Application::getId).collect(Collectors.toSet())
+                applications.stream().map(Application::getId).collect(Collectors.toSet()),
+                request.decision()
         );
         List<ApplicationResultEmailPreviewRowResponse> rows = applications.stream()
                 .map(application -> previewRow(application, states.get(application.getId()), request))
@@ -114,6 +114,22 @@ public class ApplicationResultEmailService {
         return ApplicationResultEmailBatchResponse.from(
                 batch, messageRepository.findAllByBatchId(batchId)
         );
+    }
+
+    private List<Application> findPreviewApplications(ApplicationResultEmailRequest request) {
+        Set<UUID> selectedIds = request.applicationIds() == null ? Set.of() : request.applicationIds();
+        if (selectedIds.isEmpty()) {
+            return applicationRepository.findAllByGenerationIdAndStatus(
+                    request.generationId(), request.decision()
+            );
+        }
+        List<Application> applications = applicationRepository.findAllByGenerationIdAndStatusAndIdIn(
+                request.generationId(), request.decision(), selectedIds
+        );
+        if (applications.size() != selectedIds.size()) {
+            throw new InvalidRequestException("선택한 지원자의 학기 또는 합격·불합격 상태가 현재 요청과 일치하지 않습니다.");
+        }
+        return applications;
     }
 
     private ApplicationResultEmailPreviewRowResponse previewRow(

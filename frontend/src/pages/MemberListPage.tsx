@@ -261,7 +261,7 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
                       >
                         {member.status === "ACTIVE" && <option value="INACTIVE">비활동</option>}
                         {member.status === "INACTIVE" && <option value="ACTIVE">활동 중</option>}
-                        <option value="WITHDRAWN">탈퇴</option>
+                        {member.status === "INACTIVE" && <option value="WITHDRAWN">탈퇴</option>}
                       </select>
                     </label>
                     <label className="grid gap-1 text-xs font-bold text-[var(--text-secondary)]">
@@ -568,7 +568,7 @@ export function MemberListPage() {
         {!loading && !error && members.length === 0 && (
           <div className="rounded-xl border border-[var(--border-subtle)] bg-white p-8 text-center">
             <p className="text-sm text-[var(--text-secondary)]">등록된 부원이 없습니다.</p>
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">지원자를 합격 처리하면 자동으로 추가됩니다.</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">합격 결과 메일 전송이 완료되면 자동으로 추가됩니다.</p>
           </div>
         )}
 

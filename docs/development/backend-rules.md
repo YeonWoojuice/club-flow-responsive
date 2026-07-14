@@ -46,7 +46,7 @@ com.clubflow.backend/
 - 쓰기 메서드에만 `@Transactional`을 선언한다.
 - 동아리 생성과 `PRESIDENT/APPROVED` 권한 생성은 반드시 같은 트랜잭션에서 처리한다.
 - 수동 지원자 등록은 person, application, application_answers 저장을 한 트랜잭션으로 처리한다.
-- 합격 처리는 application 상태 변경과 generation_member 생성을 한 트랜잭션으로 처리한다.
+- 합격 메일 전송 성공 결과 기록과 generation_member 생성을 한 트랜잭션으로 처리한다.
 - Controller에는 `@Transactional`을 붙이지 않는다.
 
 ## 인증과 권한

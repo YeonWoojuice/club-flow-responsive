@@ -43,6 +43,8 @@ type Props = {
   excludedCount: number;
   retryCount: number;
   unknownCount: number;
+  applicationIds?: string[];
+  individualRecipientName?: string;
   returnFocusRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
   onCompleted: () => Promise<void> | void;
@@ -57,6 +59,8 @@ export function ApplicationResultEmailModal({
   excludedCount,
   retryCount,
   unknownCount,
+  applicationIds,
+  individualRecipientName,
   returnFocusRef,
   onClose,
   onCompleted,
@@ -92,7 +96,8 @@ export function ApplicationResultEmailModal({
     subjectTemplate,
     bodyTemplate,
     ...(kakaoLink.trim() ? { kakaoLink: kakaoLink.trim() } : {}),
-  }), [bodyTemplate, decision, generationId, kakaoLink, subjectTemplate]);
+    ...(applicationIds?.length ? { applicationIds } : {}),
+  }), [applicationIds, bodyTemplate, decision, generationId, kakaoLink, subjectTemplate]);
 
   const loadPreview = useCallback(async () => {
     if (!subjectTemplate.trim() || !bodyTemplate.trim()) {
@@ -212,10 +217,12 @@ export function ApplicationResultEmailModal({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="result-email-title" className="text-lg font-extrabold text-[var(--text-primary)]">
-              {decisionLabel} 메일 일괄 전송
+              {individualRecipientName ? `${individualRecipientName}님 ${decisionLabel} 메일 전송` : `${decisionLabel} 메일 일괄 전송`}
             </h2>
             <p id="result-email-description" className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
-              {generationName}의 {decisionLabel} 결과 중 아직 전송할 수 있는 대상에게 메일을 보냅니다.
+              {individualRecipientName
+                ? `${generationName}의 ${individualRecipientName}님에게 ${decisionLabel} 결과 메일을 보냅니다.`
+                : `${generationName}의 ${decisionLabel} 결과 중 아직 전송할 수 있는 대상에게 메일을 보냅니다.`}
             </p>
           </div>
           <button

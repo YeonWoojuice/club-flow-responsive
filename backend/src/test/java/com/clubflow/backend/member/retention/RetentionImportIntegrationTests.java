@@ -5,6 +5,7 @@ import com.clubflow.backend.application.ApplicationAnswerRepository;
 import com.clubflow.backend.application.ApplicationRepository;
 import com.clubflow.backend.application.ApplicationService;
 import com.clubflow.backend.application.ApplicationStatus;
+import com.clubflow.backend.application.ApplicationStatusHistoryRepository;
 import com.clubflow.backend.application.dto.ApplicationAnswerRequest;
 import com.clubflow.backend.application.dto.ApplicationDetailResponse;
 import com.clubflow.backend.application.dto.ManualApplicationRequest;
@@ -21,6 +22,7 @@ import com.clubflow.backend.generation.dto.GenerationResponse;
 import com.clubflow.backend.generation.dto.UpdateGenerationRequest;
 import com.clubflow.backend.member.GenerationMember;
 import com.clubflow.backend.member.GenerationMemberRepository;
+import com.clubflow.backend.member.GenerationMemberService;
 import com.clubflow.backend.member.GenerationMemberStatusHistoryRepository;
 import com.clubflow.backend.member.GenerationMemberStatus;
 import com.clubflow.backend.member.MemberJoinedSource;
@@ -59,9 +61,11 @@ class RetentionImportIntegrationTests {
     @Autowired GenerationService generationService;
     @Autowired ApplicationService applicationService;
     @Autowired GenerationMemberRepository generationMemberRepository;
+    @Autowired GenerationMemberService generationMemberService;
     @Autowired GenerationMemberStatusHistoryRepository statusHistoryRepository;
     @Autowired ApplicationAnswerRepository applicationAnswerRepository;
     @Autowired ApplicationRepository applicationRepository;
+    @Autowired ApplicationStatusHistoryRepository applicationStatusHistoryRepository;
     @Autowired PersonRepository personRepository;
     @Autowired GenerationRepository generationRepository;
     @Autowired ClubStaffRepository clubStaffRepository;
@@ -73,6 +77,7 @@ class RetentionImportIntegrationTests {
         statusHistoryRepository.deleteAll();
         applicationAnswerRepository.deleteAll();
         generationMemberRepository.deleteAll();
+        applicationStatusHistoryRepository.deleteAll();
         applicationRepository.deleteAll();
         personRepository.deleteAll();
         generationRepository.deleteAll();
@@ -163,7 +168,11 @@ class RetentionImportIntegrationTests {
                         List.of(new ApplicationAnswerRequest("motivation", "지원 동기", "동아리 활동"))
                 )
         );
-        applicationService.changeStatus("google-sub-001", application.id(), ApplicationStatus.ACCEPTED);
+        applicationService.changeStatus("google-sub-001", application.id(), ApplicationStatus.ACCEPTED, null);
+        generationMemberService.ensureAcceptedMember(
+                generationRepository.findById(previous.id()).orElseThrow(),
+                personRepository.findByClubIdAndEmail(club.id(), "member@example.com").orElseThrow()
+        );
         generationService.update(
                 "google-sub-001", previous.id(),
                 new UpdateGenerationRequest(

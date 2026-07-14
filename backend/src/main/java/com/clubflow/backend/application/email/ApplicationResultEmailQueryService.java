@@ -1,5 +1,7 @@
 package com.clubflow.backend.application.email;
 
+import com.clubflow.backend.application.ApplicationStatus;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,18 +22,27 @@ public class ApplicationResultEmailQueryService {
         this.messageRepository = messageRepository;
     }
 
-    public Map<UUID, ResultEmailState> latestStates(Set<UUID> applicationIds) {
-        if (applicationIds.isEmpty()) return Map.of();
+    public Map<UUID, ResultEmailState> latestStates(Map<UUID, ApplicationStatus> decisionsByApplicationId) {
+        if (decisionsByApplicationId.isEmpty()) return Map.of();
         Map<UUID, ResultEmailState> states = new HashMap<>();
-        messageRepository.findAllByApplication_IdInOrderByCreatedAtDesc(applicationIds)
+        messageRepository.findAllByApplication_IdInOrderByCreatedAtDesc(decisionsByApplicationId.keySet())
+                .stream()
+                .filter(message -> message.getDecision() == decisionsByApplicationId.get(message.getApplicationId()))
                 .forEach(message -> states.putIfAbsent(
-                        message.getApplicationId(),
-                        new ResultEmailState(
-                                ApplicationResultEmailStatus.from(message.getStatus()),
-                                message.getSentAt()
-                        )
-                ));
+                    message.getApplicationId(),
+                    new ResultEmailState(
+                            ApplicationResultEmailStatus.from(message.getStatus()),
+                            message.getSentAt()
+                    )
+            ));
         return states;
+    }
+
+    public Map<UUID, ResultEmailState> latestStates(Set<UUID> applicationIds, ApplicationStatus decision) {
+        return latestStates(applicationIds.stream().collect(java.util.stream.Collectors.toMap(
+                applicationId -> applicationId,
+                applicationId -> decision
+        )));
     }
 
     public record ResultEmailState(ApplicationResultEmailStatus status, Instant sentAt) {

@@ -51,13 +51,13 @@
 
 ### 부원
 
-- 지원자 합격 시 학기 부원 자동 생성
+- 합격 결과 메일 전송 성공 시 학기 부원 자동 생성
 - 동일 합격 요청에 대한 중복 부원 방지
 - 학기별 부원 기록 조회
 - 선택한 학기의 부원만 조회
 - 회계 담당 운영진이 부원별 회비 상태를 확인 필요·미납·납부·면제로 기록
 - 회비 상태의 마지막 변경자와 변경 시간 확인
-- 부원 상태를 활동 중·비활동·탈퇴로 변경
+- 부원 상태를 활동 중 ↔ 비활동 → 탈퇴 순서로 변경
 - 부원 상태 변경 사유·변경자·변경 시간 이력 조회
 - 종료된 이전 학기의 잔류 부원을 활성 새 학기로 이월
 - 표 파일(CSV·엑셀), Google Form 응답 Sheet, 일반 Google Sheet에서 이월 대상 확인
@@ -73,8 +73,12 @@
 
 - SUBMITTED에서 REVIEWING으로 변경할 수 있다.
 - SUBMITTED 또는 REVIEWING에서 ACCEPTED, REJECTED, CANCELED로 변경할 수 있다.
-- ACCEPTED, REJECTED, CANCELED은 MVP의 최종 상태다.
-- 같은 최종 상태 재요청은 허용하지만 다른 상태로 변경하지 않는다.
+- ACCEPTED와 REJECTED는 결과 메일이 `NOT_SENT` 또는 `FAILED`인 동안 정정 사유와 함께 서로 변경할 수 있다.
+- 결과 메일이 `PENDING`, `SENT`, `UNKNOWN`이면 결과를 더 이상 변경할 수 없다.
+- `SENT/ACCEPTED`일 때만 해당 학기의 부원을 생성한다. `SENT/REJECTED`에는 부원을 생성하지 않는다.
+- 이전 방식으로 이미 부원이 생성된 지원 결과는 데이터 불일치를 막기 위해 정정하지 않는다.
+- CANCELED은 최종 상태이며 다른 상태로 변경하지 않는다.
+- 부원은 `ACTIVE ↔ INACTIVE → WITHDRAWN`으로 변경한다. `ACTIVE`에서 바로 `WITHDRAWN`으로 바꾸지 않는다.
 
 ## 보류
 

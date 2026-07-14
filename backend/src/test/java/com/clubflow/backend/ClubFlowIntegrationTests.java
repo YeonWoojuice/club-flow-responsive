@@ -3,6 +3,7 @@ package com.clubflow.backend;
 import com.clubflow.backend.application.ApplicationAnswerRepository;
 import com.clubflow.backend.application.ApplicationRepository;
 import com.clubflow.backend.application.ApplicationService;
+import com.clubflow.backend.application.ApplicationStatusHistoryRepository;
 import com.clubflow.backend.application.ApplicationStatus;
 import com.clubflow.backend.application.dto.ApplicationAnswerRequest;
 import com.clubflow.backend.application.dto.ApplicationDetailResponse;
@@ -15,11 +16,13 @@ import com.clubflow.backend.club.ClubStaffStatus;
 import com.clubflow.backend.club.dto.ClubResponse;
 import com.clubflow.backend.club.dto.CreateClubRequest;
 import com.clubflow.backend.common.ConflictException;
+import com.clubflow.backend.common.InvalidRequestException;
 import com.clubflow.backend.generation.GenerationRepository;
 import com.clubflow.backend.generation.GenerationService;
 import com.clubflow.backend.generation.dto.CreateGenerationRequest;
 import com.clubflow.backend.generation.dto.GenerationResponse;
 import com.clubflow.backend.member.GenerationMemberRepository;
+import com.clubflow.backend.member.GenerationMemberService;
 import com.clubflow.backend.member.GenerationMemberStatusHistoryRepository;
 import com.clubflow.backend.person.PersonRepository;
 import com.clubflow.backend.user.User;
@@ -89,11 +92,18 @@ class ClubFlowIntegrationTests {
     GenerationMemberRepository generationMemberRepository;
 
     @Autowired
+    GenerationMemberService generationMemberService;
+
+    @Autowired
     GenerationMemberStatusHistoryRepository statusHistoryRepository;
+
+    @Autowired
+    ApplicationStatusHistoryRepository applicationStatusHistoryRepository;
 
     @BeforeEach
     void setUp() {
         statusHistoryRepository.deleteAll();
+        applicationStatusHistoryRepository.deleteAll();
         applicationAnswerRepository.deleteAll();
         generationMemberRepository.deleteAll();
         applicationRepository.deleteAll();
@@ -148,7 +158,7 @@ class ClubFlowIntegrationTests {
     }
 
     @Test
-    void 수동_지원자는_이메일을_소문자로_저장하고_합격해도_부원이_중복되지_않는다() {
+    void 결과_메일_전에는_합격과_불합격을_정정할_수_있고_부원은_생기지_않는다() {
         userService.synchronizeGoogleUser(
                 "google-sub-001",
                 "owner@example.com",
@@ -188,27 +198,42 @@ class ClubFlowIntegrationTests {
         applicationService.changeStatus(
                 "google-sub-001",
                 application.id(),
-                ApplicationStatus.ACCEPTED
+                ApplicationStatus.ACCEPTED,
+                null
         );
         applicationService.changeStatus(
                 "google-sub-001",
                 application.id(),
-                ApplicationStatus.ACCEPTED
+                ApplicationStatus.ACCEPTED,
+                null
         );
 
         assertThat(personRepository.findAll())
                 .extracting(person -> person.getEmail())
                 .containsExactly("applicant@example.com");
-        assertThat(generationMemberRepository.count()).isEqualTo(1);
-        assertThatThrownBy(() -> applicationService.changeStatus(
+        assertThat(generationMemberRepository.count()).isZero();
+        ApplicationDetailResponse corrected = applicationService.changeStatus(
                 "google-sub-001",
                 application.id(),
-                ApplicationStatus.REJECTED
-        )).isInstanceOf(ConflictException.class);
+                ApplicationStatus.REJECTED,
+                "결과 정정"
+        );
+        assertThat(corrected.status()).isEqualTo(ApplicationStatus.REJECTED);
+        assertThat(corrected.statusHistory()).hasSize(2);
+        assertThat(generationMemberRepository.count()).isZero();
+
+        generationMemberService.ensureAcceptedMember(
+                generationRepository.findById(generation.id()).orElseThrow(),
+                personRepository.findByClubIdAndEmail(club.id(), "applicant@example.com").orElseThrow()
+        );
+        assertThatThrownBy(() -> applicationService.changeStatus(
+                "google-sub-001", application.id(), ApplicationStatus.ACCEPTED, "기존 데이터 정정"
+        )).isInstanceOf(ConflictException.class)
+                .hasMessage("이미 부원으로 등록된 기존 지원 결과는 변경할 수 없습니다.");
     }
 
     @Test
-    void 지원서를_동시에_합격과_불합격_처리해도_최종_상태와_부원_등록이_일치한다() throws Exception {
+    void 지원서를_동시에_합격과_불합격_처리하면_사유없는_후속_정정은_거부한다() throws Exception {
         userService.synchronizeGoogleUser(
                 "google-sub-001", "owner@example.com", "회장", null
         );
@@ -245,39 +270,38 @@ class ClubFlowIntegrationTests {
                 ready.countDown();
                 start.await();
                 return applicationService.changeStatus(
-                        "google-sub-001", application.id(), ApplicationStatus.ACCEPTED
+                        "google-sub-001", application.id(), ApplicationStatus.ACCEPTED, null
                 ).status();
             });
             Future<ApplicationStatus> rejected = executor.submit(() -> {
                 ready.countDown();
                 start.await();
                 return applicationService.changeStatus(
-                        "google-sub-001", application.id(), ApplicationStatus.REJECTED
+                        "google-sub-001", application.id(), ApplicationStatus.REJECTED, null
                 ).status();
             });
             assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
             start.countDown();
 
             int successCount = 0;
-            int conflictCount = 0;
+            int rejectedRequestCount = 0;
             for (Future<ApplicationStatus> result : List.of(accepted, rejected)) {
                 try {
                     result.get(10, TimeUnit.SECONDS);
                     successCount++;
                 } catch (ExecutionException exception) {
-                    assertThat(exception.getCause()).isInstanceOf(ConflictException.class);
-                    conflictCount++;
+                    assertThat(exception.getCause()).isInstanceOf(InvalidRequestException.class);
+                    rejectedRequestCount++;
                 }
             }
 
             assertThat(successCount).isEqualTo(1);
-            assertThat(conflictCount).isEqualTo(1);
+            assertThat(rejectedRequestCount).isEqualTo(1);
             ApplicationStatus finalStatus = applicationRepository.findById(application.id())
                     .orElseThrow()
                     .getStatus();
             assertThat(finalStatus).isIn(ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED);
-            assertThat(generationMemberRepository.count())
-                    .isEqualTo(finalStatus == ApplicationStatus.ACCEPTED ? 1 : 0);
+            assertThat(generationMemberRepository.count()).isZero();
         } finally {
             executor.shutdownNow();
         }

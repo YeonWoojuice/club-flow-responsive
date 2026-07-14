@@ -51,6 +51,8 @@ function application(
     status,
     resultEmailStatus,
     resultEmailSentAt: resultEmailStatus === "SENT" ? "2026-07-14T00:00:00Z" : null,
+    generationMemberId: null,
+    generationMemberStatus: null,
     sourceType: "MANUAL",
     submittedAt: "2026-07-13T00:00:00Z",
   };

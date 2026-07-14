@@ -5,6 +5,8 @@ import com.clubflow.backend.application.ApplicationSourceType;
 import com.clubflow.backend.application.ApplicationStatus;
 import com.clubflow.backend.application.email.ApplicationResultEmailQueryService.ResultEmailState;
 import com.clubflow.backend.application.email.ApplicationResultEmailStatus;
+import com.clubflow.backend.member.GenerationMember;
+import com.clubflow.backend.member.GenerationMemberStatus;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -23,13 +25,15 @@ public record ApplicationSummaryResponse(
         ApplicationSourceType sourceType,
         Instant submittedAt,
         ApplicationResultEmailStatus resultEmailStatus,
-        Instant resultEmailSentAt
+        Instant resultEmailSentAt,
+        UUID generationMemberId,
+        GenerationMemberStatus generationMemberStatus
 ) {
-    public static ApplicationSummaryResponse from(Application application) {
-        return from(application, ResultEmailState.notSent());
-    }
-
-    public static ApplicationSummaryResponse from(Application application, ResultEmailState emailState) {
+    public static ApplicationSummaryResponse from(
+            Application application,
+            ResultEmailState emailState,
+            GenerationMember member
+    ) {
         return new ApplicationSummaryResponse(
                 application.getId(),
                 application.getGeneration().getId(),
@@ -44,7 +48,9 @@ public record ApplicationSummaryResponse(
                 application.getSourceType(),
                 application.getSubmittedAt(),
                 emailState.status(),
-                emailState.sentAt()
+                emailState.sentAt(),
+                member == null ? null : member.getId(),
+                member == null ? null : member.getStatus()
         );
     }
 }

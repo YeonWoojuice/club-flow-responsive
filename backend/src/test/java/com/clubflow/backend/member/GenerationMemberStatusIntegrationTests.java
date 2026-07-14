@@ -3,6 +3,7 @@ package com.clubflow.backend.member;
 import com.clubflow.backend.TestcontainersConfiguration;
 import com.clubflow.backend.application.ApplicationAnswerRepository;
 import com.clubflow.backend.application.ApplicationRepository;
+import com.clubflow.backend.application.ApplicationStatusHistoryRepository;
 import com.clubflow.backend.club.Club;
 import com.clubflow.backend.club.ClubRepository;
 import com.clubflow.backend.club.ClubService;
@@ -53,6 +54,7 @@ class GenerationMemberStatusIntegrationTests {
     @Autowired GenerationMemberStatusHistoryRepository statusHistoryRepository;
     @Autowired ApplicationAnswerRepository applicationAnswerRepository;
     @Autowired ApplicationRepository applicationRepository;
+    @Autowired ApplicationStatusHistoryRepository applicationStatusHistoryRepository;
     @Autowired GenerationMemberRepository generationMemberRepository;
     @Autowired PersonRepository personRepository;
     @Autowired GenerationRepository generationRepository;
@@ -68,6 +70,7 @@ class GenerationMemberStatusIntegrationTests {
         statusHistoryRepository.deleteAll();
         generationMemberRepository.deleteAll();
         applicationAnswerRepository.deleteAll();
+        applicationStatusHistoryRepository.deleteAll();
         applicationRepository.deleteAll();
         personRepository.deleteAll();
         generationRepository.deleteAll();
@@ -134,6 +137,11 @@ class GenerationMemberStatusIntegrationTests {
         generationMemberService.changeStatus(
                 data.googleSub(),
                 data.member().getId(),
+                new ChangeGenerationMemberStatusRequest(GenerationMemberStatus.INACTIVE, "활동 종료")
+        );
+        generationMemberService.changeStatus(
+                data.googleSub(),
+                data.member().getId(),
                 new ChangeGenerationMemberStatusRequest(GenerationMemberStatus.WITHDRAWN, "개인 사정")
         );
 
@@ -142,7 +150,7 @@ class GenerationMemberStatusIntegrationTests {
                 data.member().getId(),
                 new ChangeGenerationMemberStatusRequest(GenerationMemberStatus.ACTIVE, "복귀")
         )).isInstanceOf(ConflictException.class);
-        assertThat(statusHistoryRepository.count()).isEqualTo(1);
+        assertThat(statusHistoryRepository.count()).isEqualTo(2);
         assertThat(generationMemberRepository.findById(data.member().getId()).orElseThrow().getStatus())
                 .isEqualTo(GenerationMemberStatus.WITHDRAWN);
     }

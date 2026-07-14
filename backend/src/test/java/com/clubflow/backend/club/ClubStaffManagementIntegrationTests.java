@@ -3,6 +3,7 @@ package com.clubflow.backend.club;
 import com.clubflow.backend.TestcontainersConfiguration;
 import com.clubflow.backend.application.ApplicationAnswerRepository;
 import com.clubflow.backend.application.ApplicationRepository;
+import com.clubflow.backend.application.ApplicationStatusHistoryRepository;
 import com.clubflow.backend.club.dto.ChangeClubStaffRoleRequest;
 import com.clubflow.backend.club.dto.ClubResponse;
 import com.clubflow.backend.club.dto.ClubStaffInvitationResponse;
@@ -52,6 +53,7 @@ class ClubStaffManagementIntegrationTests {
     @Autowired ApplicationAnswerRepository applicationAnswerRepository;
     @Autowired GenerationMemberRepository generationMemberRepository;
     @Autowired ApplicationRepository applicationRepository;
+    @Autowired ApplicationStatusHistoryRepository applicationStatusHistoryRepository;
     @Autowired PersonRepository personRepository;
     @Autowired GenerationRepository generationRepository;
     @Autowired ClubStaffRepository clubStaffRepository;
@@ -64,6 +66,7 @@ class ClubStaffManagementIntegrationTests {
         statusHistoryRepository.deleteAll();
         applicationAnswerRepository.deleteAll();
         generationMemberRepository.deleteAll();
+        applicationStatusHistoryRepository.deleteAll();
         applicationRepository.deleteAll();
         personRepository.deleteAll();
         generationRepository.deleteAll();
