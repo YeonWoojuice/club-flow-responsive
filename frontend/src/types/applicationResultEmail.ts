@@ -13,7 +13,6 @@ export type ApplicationResultEmailRecipient = {
   applicationId: string;
   memberName: string;
   email: string;
-  discordName: string | null;
   resultEmailStatus: "NOT_SENT" | "PENDING" | "SENT" | "FAILED" | "UNKNOWN";
   sendable: boolean;
   reason: string | null;

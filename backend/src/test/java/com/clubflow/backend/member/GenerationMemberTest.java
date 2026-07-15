@@ -61,6 +61,18 @@ class GenerationMemberTest {
         assertThat(member.getDuesStatusUpdatedBy()).isNull();
     }
 
+    @Test
+    void 새_부원의_초대_여부는_모두_미완료로_시작하고_변경할_수_있다() {
+        GenerationMember member = createMember();
+
+        assertThat(member.isKakaoInvited()).isFalse();
+        assertThat(member.isDiscordInvited()).isFalse();
+        assertThat(member.changeInvitationStatus(true, false)).isTrue();
+        assertThat(member.isKakaoInvited()).isTrue();
+        assertThat(member.isDiscordInvited()).isFalse();
+        assertThat(member.changeInvitationStatus(true, false)).isFalse();
+    }
+
     private GenerationMember createMember() {
         User user = User.create("member-status-test", "owner@example.com", "회장", null);
         Club club = Club.create("테스트 동아리", null, user);

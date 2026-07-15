@@ -95,7 +95,6 @@ describe("ApplicationListPage 일괄 합격", () => {
         applicationId: "accepted",
         memberName: "지원자 accepted",
         email: "accepted@example.com",
-        discordName: null,
         resultEmailStatus: "NOT_SENT",
         sendable: true,
         reason: null,

@@ -22,7 +22,7 @@ describe("ManualApplicationPage", () => {
     createManualApplication.mockResolvedValue({ id: "application-1" });
   });
 
-  it("선택한 디스코드 이름을 결과 메일 변수용 인물 정보로 등록한다", async () => {
+  it("지원자를 기본 인적 정보로 등록한다", async () => {
     render(
       <MemoryRouter initialEntries={["/clubs/club-1/applications/new"]}>
         <Routes>
@@ -36,7 +36,6 @@ describe("ManualApplicationPage", () => {
     fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김지원" } });
     fireEvent.change(screen.getByLabelText("학번"), { target: { value: "20260001" } });
     fireEvent.change(screen.getByLabelText("이메일"), { target: { value: "APPLY@example.com" } });
-    fireEvent.change(screen.getByLabelText(/디스코드 이름/), { target: { value: " crewcat_user " } });
     fireEvent.change(screen.getByLabelText("답변"), { target: { value: "함께 활동하고 싶습니다." } });
     fireEvent.click(screen.getByRole("button", { name: "지원자 등록" }));
 
@@ -44,9 +43,9 @@ describe("ManualApplicationPage", () => {
       "club-1",
       expect.objectContaining({
         email: "apply@example.com",
-        discordName: "crewcat_user",
       }),
     ));
+    expect(screen.queryByLabelText(/디스코드/)).not.toBeInTheDocument();
     expect(await screen.findByText("등록 완료")).toBeInTheDocument();
   });
 });

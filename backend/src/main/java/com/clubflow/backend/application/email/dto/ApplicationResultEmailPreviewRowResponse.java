@@ -8,7 +8,6 @@ public record ApplicationResultEmailPreviewRowResponse(
         UUID applicationId,
         String memberName,
         String email,
-        String discordName,
         ApplicationResultEmailStatus resultEmailStatus,
         boolean sendable,
         String reason,

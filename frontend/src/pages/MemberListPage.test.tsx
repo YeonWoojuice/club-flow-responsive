@@ -10,12 +10,14 @@ const {
   listGenerations,
   listMembers,
   changeGenerationMemberDuesStatus,
+  changeGenerationMemberInvitationStatus,
   changeGenerationMemberStatus,
   listGenerationMemberStatusHistory,
 } = vi.hoisted(() => ({
   listGenerations: vi.fn(),
   listMembers: vi.fn(),
   changeGenerationMemberDuesStatus: vi.fn(),
+  changeGenerationMemberInvitationStatus: vi.fn(),
   changeGenerationMemberStatus: vi.fn(),
   listGenerationMemberStatusHistory: vi.fn(),
 }));
@@ -23,6 +25,7 @@ const {
 vi.mock("../api/members", () => ({
   listMembers,
   changeGenerationMemberDuesStatus,
+  changeGenerationMemberInvitationStatus,
   changeGenerationMemberStatus,
   listGenerationMemberStatusHistory,
 }));
@@ -43,6 +46,8 @@ const activeMember: GenerationMember = {
   joinedSource: "APPLICATION_ACCEPT",
   status: "ACTIVE",
   duesStatus: "UNKNOWN",
+  kakaoInvited: false,
+  discordInvited: false,
   duesStatusUpdatedAt: null,
   duesStatusUpdatedByUserId: null,
   duesStatusUpdatedByName: null,
@@ -96,6 +101,10 @@ describe("MemberListPage", () => {
       duesStatusUpdatedByUserId: "user-1",
       duesStatusUpdatedByName: "회계 운영진",
     });
+    changeGenerationMemberInvitationStatus.mockResolvedValue({
+      ...activeMember,
+      kakaoInvited: true,
+    });
   });
 
   it("활성 학기 부원만 불러오고 학기를 바꾸면 해당 학기 부원을 다시 조회한다", async () => {
@@ -127,7 +136,7 @@ describe("MemberListPage", () => {
     expect(updatedDescription).toHaveAttribute("title", expect.stringContaining("회계 운영진"));
   });
 
-  it("1024px까지 카드형을 유지하고 1280px부터 헤더와 행에 같은 grid geometry를 적용한다", async () => {
+  it("작은 화면은 2열 압축 카드이고 1024px부터 표 형태를 적용한다", async () => {
     renderPage();
 
     const email = await screen.findByText("member@example.com");
@@ -136,22 +145,70 @@ describe("MemberListPage", () => {
     const mobileFilters = screen.getByLabelText("학번 필터").parentElement?.parentElement;
 
     expect(memberRow).toHaveClass(
-      "gap-4",
-      "px-4",
-      "xl:grid-cols-[minmax(180px,1.6fr)_minmax(90px,0.8fr)_90px_80px_minmax(160px,1.2fr)_minmax(180px,1fr)]",
-      "xl:px-5",
-      "xl:items-start",
+      "gap-x-3",
+      "px-3",
+      "grid-cols-2",
+      "lg:min-w-[1040px]",
+      "lg:items-start",
     );
-    expect(memberRow).not.toHaveClass("lg:grid-cols-[minmax(180px,1.6fr)_minmax(90px,0.8fr)_90px_80px_minmax(160px,1.2fr)_minmax(180px,1fr)]");
     expect(desktopHeader).toHaveClass(
       "hidden",
-      "xl:grid",
-      "gap-4",
-      "px-4",
-      "xl:grid-cols-[minmax(180px,1.6fr)_minmax(90px,0.8fr)_90px_80px_minmax(160px,1.2fr)_minmax(180px,1fr)]",
-      "xl:px-5",
+      "lg:grid",
+      "gap-x-3",
+      "px-3",
+      "lg:min-w-[1040px]",
     );
-    expect(mobileFilters).toHaveClass("xl:hidden");
+    expect(mobileFilters).toHaveClass("lg:hidden");
+  });
+
+  it("카카오톡과 디스코드 초대 여부를 부원별로 저장한다", async () => {
+    renderPage();
+
+    const kakao = await screen.findByLabelText("김부원 카카오톡 초대 완료");
+    const discord = screen.getByLabelText("김부원 디스코드 초대 완료");
+    expect(kakao).not.toBeChecked();
+    expect(discord).not.toBeChecked();
+    fireEvent.click(kakao);
+
+    await waitFor(() => expect(changeGenerationMemberInvitationStatus).toHaveBeenCalledWith(
+      "member-1",
+      { kakaoInvited: true, discordInvited: false },
+    ));
+    expect(await screen.findByLabelText("김부원 카카오톡 초대 완료")).toBeChecked();
+  });
+
+  it("초대 미완료 인원수를 표시하고 초대 상태로 필터링한다", async () => {
+    const completedMember = {
+      ...inactiveUnpaidMember,
+      kakaoInvited: true,
+      discordInvited: true,
+    };
+    listMembers.mockResolvedValueOnce([activeMember, completedMember]);
+    renderPage();
+
+    expect(await screen.findByText("카카오톡 미초대 1명 · 디스코드 미초대 1명")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("초대 필터"), { target: { value: "KAKAO_PENDING" } });
+
+    expect(screen.queryAllByText("김부원").length).toBeGreaterThan(0);
+    expect(screen.queryAllByText("이부원")).toHaveLength(0);
+    expect(screen.getByText("1명 표시 중")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("초대 필터"), { target: { value: "COMPLETE" } });
+    expect(screen.queryAllByText("이부원").length).toBeGreaterThan(0);
+    expect(screen.queryAllByText("김부원")).toHaveLength(0);
+  });
+
+  it("제목 행에서도 초대 필터를 적용하고 적용 상태를 표시한다", async () => {
+    listMembers.mockResolvedValueOnce([activeMember, { ...inactiveUnpaidMember, kakaoInvited: true }]);
+    renderPage();
+
+    const invitationHeader = await screen.findByRole("button", { name: "초대 확인" });
+    fireEvent.click(invitationHeader);
+    fireEvent.change(screen.getByLabelText("표 초대 필터"), { target: { value: "BOTH_PENDING" } });
+
+    expect(screen.queryAllByText("김부원").length).toBeGreaterThan(0);
+    expect(screen.queryAllByText("이부원")).toHaveLength(0);
+    expect(invitationHeader.parentElement).toHaveClass("bg-[var(--panel-muted)]");
   });
 
   it("긴 이메일을 한 줄로 줄이고 관리 버튼을 안정적인 두 칸으로 배치한다", async () => {

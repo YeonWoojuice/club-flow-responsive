@@ -1,0 +1,3 @@
+ALTER TABLE generation_members
+    ADD COLUMN kakao_invited BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN discord_invited BOOLEAN NOT NULL DEFAULT FALSE;

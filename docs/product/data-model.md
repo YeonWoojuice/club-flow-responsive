@@ -137,7 +137,7 @@ generations 1 ── N applications N ── 1 persons
 
 - 지원자와 부원은 같은 `persons` 정보를 참조한다.
 - `UNIQUE(club_id, email)`로 동아리 안의 중복 인물을 방지한다.
-- `discord_name`은 결과 메일의 선택 템플릿 변수에 사용하며, 없으면 해당 변수를 사용한 수신자는 전송 대상에서 제외한다.
+- `discord_name`은 이전 버전 호환을 위해 DB에만 남아 있으며 신규 화면과 API에서는 사용하지 않는다.
 
 ## applications
 
@@ -209,7 +209,7 @@ generations 1 ── N applications N ── 1 persons
 | batch_id / application_id | 전송 묶음과 지원서 |
 | status | PENDING, SENT, FAILED, UNKNOWN |
 | recipient_email_snapshot | 전송 당시 수신 주소 |
-| member_name_snapshot / discord_name_snapshot | 변수 치환 당시 인물 정보 |
+| member_name_snapshot | 변수 치환 당시 인물 정보 |
 | club_name_snapshot / kakao_link_snapshot | 변수 치환 당시 동아리·링크 정보 |
 | subject_snapshot / body_snapshot | 실제로 외부 제공자에 전달한 내용 |
 | idempotency_key | 같은 외부 요청의 반복 처리를 막는 키 |
@@ -219,6 +219,7 @@ generations 1 ── N applications N ── 1 persons
 - `SENT`는 수신함 도착이나 열람이 아니라 외부 제공자가 전송 요청을 정상 접수했다는 뜻이다.
 - 한 지원서에 `PENDING`, `SENT`, `UNKNOWN` 결과가 둘 이상 생기지 않게 DB 제약으로 막는다.
 - `FAILED`만 재시도할 수 있고, `UNKNOWN`은 실제 발송 여부가 불분명하므로 자동 재시도하지 않는다.
+- `discord_name_snapshot`은 이전 버전 호환을 위해 DB에만 남아 있으며 신규 발송에서는 사용하지 않는다.
 
 ## generation_members
 
@@ -230,6 +231,8 @@ generations 1 ── N applications N ── 1 persons
 | joined_source | VARCHAR(30) | APPLICATION_ACCEPT, MANUAL, RETENTION |
 | status | VARCHAR(20) | ACTIVE, INACTIVE, WITHDRAWN |
 | dues_status | VARCHAR(20) | UNKNOWN, UNPAID, PAID, EXEMPT |
+| kakao_invited | BOOLEAN | NOT NULL, 기본값 FALSE |
+| discord_invited | BOOLEAN | NOT NULL, 기본값 FALSE |
 | dues_status_updated_at | TIMESTAMPTZ | NULL 허용 |
 | dues_status_updated_by_user_id | UUID | FK → users.id, NULL 허용 |
 | created_at | TIMESTAMPTZ | NOT NULL |

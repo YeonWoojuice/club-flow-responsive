@@ -60,8 +60,6 @@ export type ManualApplicationInput = {
   email: string;
   /** 백엔드 계약상 선택 항목. 빈 값은 필드를 생략해 null로 저장되게 한다. */
   phone?: string;
-  /** 결과 메일의 {{discordName}} 변수에 사용할 선택 항목이다. */
-  discordName?: string;
   studentNumber: string;
   applicationAnswers: {
     questionKey: string;

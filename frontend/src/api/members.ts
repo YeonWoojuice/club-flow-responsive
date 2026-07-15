@@ -22,6 +22,16 @@ export function changeGenerationMemberDuesStatus(
   });
 }
 
+export function changeGenerationMemberInvitationStatus(
+  memberId: string,
+  request: { kakaoInvited: boolean; discordInvited: boolean },
+) {
+  return apiRequest<GenerationMember>(`/api/generation-members/${memberId}/invitation-status`, {
+    method: "PATCH",
+    body: JSON.stringify(request),
+  });
+}
+
 export function changeGenerationMemberStatus(
   memberId: string,
   request: GenerationMemberStatusChangeRequest,

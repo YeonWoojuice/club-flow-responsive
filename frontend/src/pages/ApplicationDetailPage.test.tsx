@@ -97,4 +97,12 @@ describe("ApplicationDetailPage", () => {
     expect(screen.queryByRole("button", { name: "불합격으로 정정" })).not.toBeInTheDocument();
     expect(screen.getByText("기존 방식으로 이미 부원 등록된 결과는 변경할 수 없습니다.")).toBeInTheDocument();
   });
+
+  it("재시작 전의 예전 상세 응답에 변경 이력이 없어도 화면을 표시한다", async () => {
+    getApplication.mockResolvedValue({ ...accepted, statusHistory: undefined });
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "김지원" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "결과 메일 보내기" })).toBeInTheDocument();
+  });
 });

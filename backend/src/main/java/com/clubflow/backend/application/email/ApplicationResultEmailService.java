@@ -155,7 +155,7 @@ public class ApplicationResultEmailService {
             );
             return new ApplicationResultEmailPreviewRowResponse(
                     application.getId(), application.getPerson().getName(), application.getPerson().getEmail(),
-                    application.getPerson().getDiscordName(), status, true,
+                    status, true,
                     status == ApplicationResultEmailStatus.FAILED ? "이전 실패 건을 재시도합니다." : null,
                     rendered.subject(), rendered.body()
             );
@@ -171,7 +171,7 @@ public class ApplicationResultEmailService {
     ) {
         return new ApplicationResultEmailPreviewRowResponse(
                 application.getId(), application.getPerson().getName(), application.getPerson().getEmail(),
-                application.getPerson().getDiscordName(), status, false, reason, null, null
+                status, false, reason, null, null
         );
     }
 }

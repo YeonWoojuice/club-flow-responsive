@@ -106,7 +106,7 @@ public class ApplicationService {
                 request.email(),
                 request.phone(),
                 request.studentNumber(),
-                request.discordName()
+                null
         );
         if (applicationRepository.existsByGenerationIdAndPersonId(generation.getId(), person.getId())) {
             throw new ConflictException("같은 학기에 이미 등록된 지원자가 있습니다.");

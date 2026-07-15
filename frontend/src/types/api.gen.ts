@@ -308,6 +308,22 @@ export interface paths {
         patch: operations["changeStatus"];
         trace?: never;
     };
+    "/api/generation-members/{memberId}/invitation-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["changeInvitationStatus"];
+        trace?: never;
+    };
     "/api/generation-members/{memberId}/dues-status": {
         parameters: {
             query?: never;
@@ -701,7 +717,6 @@ export interface components {
             studentNumberHeader: string;
             phoneHeader?: string;
             submittedAtHeader?: string;
-            discordNameHeader?: string;
         };
         UpsertApplicationImportSourceRequest: {
             displayName: string;
@@ -718,7 +733,6 @@ export interface components {
             studentNumberHeader?: string;
             phoneHeader?: string;
             submittedAtHeader?: string;
-            discordNameHeader?: string;
         };
         ApplicationImportSourceResponse: {
             /** Format: uuid */
@@ -886,7 +900,6 @@ export interface components {
             email: string;
             phone?: string;
             studentNumber: string;
-            discordName?: string;
             applicationAnswers: components["schemas"]["ApplicationAnswerRequest"][];
         };
         ApplicationAnswerResponse: {
@@ -911,7 +924,6 @@ export interface components {
             email?: string;
             phone?: string;
             studentNumber?: string;
-            discordName?: string;
             /** @enum {string} */
             status?: "SUBMITTED" | "REVIEWING" | "ACCEPTED" | "REJECTED" | "CANCELED";
             /** @enum {string} */
@@ -1003,7 +1015,6 @@ export interface components {
             applicationId?: string;
             memberName?: string;
             email?: string;
-            discordName?: string;
             /** @enum {string} */
             resultEmailStatus?: "NOT_SENT" | "PENDING" | "SENT" | "FAILED" | "UNKNOWN";
             sendable?: boolean;
@@ -1028,7 +1039,6 @@ export interface components {
             email?: string;
             phone?: string;
             studentNumber?: string;
-            discordName?: string;
             /** Format: date-time */
             submittedAt?: string;
             answers?: components["schemas"]["ApplicationImportAnswerRequest"][];
@@ -1053,7 +1063,6 @@ export interface components {
             email?: string;
             phone?: string;
             studentNumber?: string;
-            discordName?: string;
             /** Format: date-time */
             submittedAt?: string;
             /** Format: uuid */
@@ -1093,6 +1102,8 @@ export interface components {
             status?: "ACTIVE" | "INACTIVE" | "WITHDRAWN";
             /** @enum {string} */
             duesStatus?: "UNKNOWN" | "UNPAID" | "PAID" | "EXEMPT";
+            kakaoInvited?: boolean;
+            discordInvited?: boolean;
             /** Format: date-time */
             duesStatusUpdatedAt?: string;
             /** Format: uuid */
@@ -1100,6 +1111,10 @@ export interface components {
             duesStatusUpdatedByName?: string;
             /** Format: date-time */
             createdAt?: string;
+        };
+        ChangeGenerationMemberInvitationStatusRequest: {
+            kakaoInvited: boolean;
+            discordInvited: boolean;
         };
         ChangeGenerationMemberDuesStatusRequest: {
             /** @enum {string} */
@@ -1147,7 +1162,6 @@ export interface components {
             email?: string;
             phone?: string;
             studentNumber?: string;
-            discordName?: string;
             /** @enum {string} */
             status?: "SUBMITTED" | "REVIEWING" | "ACCEPTED" | "REJECTED" | "CANCELED";
             /** @enum {string} */
@@ -1178,8 +1192,8 @@ export interface components {
         };
         CsrfToken: {
             headerName?: string;
-            parameterName?: string;
             token?: string;
+            parameterName?: string;
         };
         CsrfTokenResponse: {
             headerName?: string;
@@ -2804,6 +2818,77 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ChangeGenerationMemberStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GenerationMemberResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    changeInvitationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeGenerationMemberInvitationStatusRequest"];
             };
         };
         responses: {

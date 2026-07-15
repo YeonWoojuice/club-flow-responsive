@@ -16,7 +16,7 @@ import type {
   ApplicationResultEmailSendResult,
 } from "../types/applicationResultEmail";
 
-const templateVariables = ["{{memberName}}", "{{clubName}}", "{{discordName}}", "{{kakaoLink}}"] as const;
+const templateVariables = ["{{memberName}}", "{{clubName}}", "{{kakaoLink}}"] as const;
 
 function createDefaultTemplates(
   decision: ApplicationResultEmailDecision,

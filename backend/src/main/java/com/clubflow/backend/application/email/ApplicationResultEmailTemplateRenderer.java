@@ -16,7 +16,7 @@ public class ApplicationResultEmailTemplateRenderer {
 
     private static final Pattern VARIABLE = Pattern.compile("\\{\\{\\s*([A-Za-z][A-Za-z0-9]*)\\s*}}" );
     private static final Set<String> SUPPORTED = Set.of(
-            "clubName", "memberName", "discordName", "kakaoLink"
+            "clubName", "memberName", "kakaoLink"
     );
 
     public void validate(String subjectTemplate, String bodyTemplate, String kakaoLink) {
@@ -34,7 +34,6 @@ public class ApplicationResultEmailTemplateRenderer {
         Map<String, String> values = Map.of(
                 "clubName", application.getGeneration().getClub().getName(),
                 "memberName", application.getPerson().getName(),
-                "discordName", valueOrEmpty(application.getPerson().getDiscordName()),
                 "kakaoLink", valueOrEmpty(kakaoLink)
         );
         String subject = renderTemplate(subjectTemplate, values);

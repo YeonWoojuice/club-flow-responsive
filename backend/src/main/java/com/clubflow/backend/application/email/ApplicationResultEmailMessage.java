@@ -115,7 +115,7 @@ public class ApplicationResultEmailMessage {
                 application,
                 application.getPerson().getEmail(),
                 application.getPerson().getName(),
-                application.getPerson().getDiscordName(),
+                null,
                 application.getGeneration().getClub().getName(),
                 kakaoLink,
                 subject,

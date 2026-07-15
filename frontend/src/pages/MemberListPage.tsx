@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
   changeGenerationMemberDuesStatus,
+  changeGenerationMemberInvitationStatus,
   changeGenerationMemberStatus,
   listGenerationMemberStatusHistory,
   listMembers,
@@ -43,7 +44,15 @@ const duesStatusLabel: Record<GenerationMemberDuesStatus, string> = {
   EXEMPT: "면제",
 };
 
-const memberGridGeometry = "gap-4 px-4 xl:grid-cols-[minmax(180px,1.6fr)_minmax(90px,0.8fr)_90px_80px_minmax(160px,1.2fr)_minmax(180px,1fr)] xl:px-5";
+const invitationFilterLabel = {
+  ALL: "전체 초대 상태",
+  KAKAO_PENDING: "카카오톡 초대 필요",
+  DISCORD_PENDING: "디스코드 초대 필요",
+  BOTH_PENDING: "둘 다 초대 필요",
+  COMPLETE: "초대 완료",
+} as const;
+
+const memberGridGeometry = "grid-cols-2 gap-x-3 gap-y-2 px-3 lg:min-w-[1040px] lg:grid-cols-[minmax(170px,1.45fr)_72px_58px_76px_minmax(130px,1fr)_minmax(150px,1.1fr)_minmax(160px,1fr)] lg:px-4";
 
 function StatusBadge({ status }: { status: GenerationMemberStatus }) {
   if (status === "ACTIVE") {
@@ -95,6 +104,8 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
   const [historyError, setHistoryError] = useState("");
   const [duesSubmitting, setDuesSubmitting] = useState(false);
   const [duesError, setDuesError] = useState("");
+  const [invitationSubmitting, setInvitationSubmitting] = useState(false);
+  const [invitationError, setInvitationError] = useState("");
 
   const formId = `member-status-form-${member.id}`;
   const historyId = `member-status-history-${member.id}`;
@@ -172,28 +183,45 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
     }
   }
 
+  async function handleInvitationStatusChange(
+    field: "kakaoInvited" | "discordInvited",
+    checked: boolean,
+  ) {
+    setInvitationSubmitting(true);
+    setInvitationError("");
+    try {
+      onUpdated(await changeGenerationMemberInvitationStatus(member.id, {
+        kakaoInvited: field === "kakaoInvited" ? checked : member.kakaoInvited,
+        discordInvited: field === "discordInvited" ? checked : member.discordInvited,
+      }));
+    } catch (requestError) {
+      setInvitationError(apiErrorMessage(requestError, "초대 여부를 변경하지 못했습니다."));
+    } finally {
+      setInvitationSubmitting(false);
+    }
+  }
+
   return (
     <article className="border-t border-[var(--border-subtle)] first:border-t-0">
-      <div className={`grid py-4 transition-colors hover:bg-[var(--panel-muted)] xl:items-start xl:py-3.5 ${memberGridGeometry}`}>
-        <div className="min-w-0">
+      <div className={`grid py-3 transition-colors hover:bg-[var(--panel-muted)] lg:items-start lg:py-2.5 ${memberGridGeometry}`}>
+        <div className="col-span-2 min-w-0 sm:col-span-1 lg:col-span-1">
           <span className="block text-sm font-bold text-[var(--text-primary)]">{member.name}</span>
           <span title={member.email} className="mt-0.5 block truncate text-xs text-[var(--text-secondary)]">{member.email}</span>
           <span className="mt-0.5 block text-[11px] text-[var(--text-secondary)]">학번 {member.studentNumber}</span>
         </div>
-        <div>
-          <span className="mb-1 block text-[10px] font-bold text-[var(--text-secondary)] xl:hidden">학기</span>
+        <div className="hidden lg:block">
           <span className="text-xs text-[var(--text-secondary)]">{member.generationName}</span>
         </div>
         <div>
-          <span className="mb-1 block text-[10px] font-bold text-[var(--text-secondary)] xl:hidden">가입 경로</span>
-          <span className="text-xs text-[var(--text-secondary)]">{sourceLabel[member.joinedSource]}</span>
+          <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">가입 경로</span>
+          <span className="text-[11px] text-[var(--text-secondary)]">{sourceLabel[member.joinedSource]}</span>
         </div>
         <div>
-          <span className="mb-1 block text-[10px] font-bold text-[var(--text-secondary)] xl:hidden">상태</span>
+          <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">상태</span>
           <StatusBadge status={member.status} />
         </div>
         <div className="min-w-0">
-          <span className="mb-1 block text-[10px] font-bold text-[var(--text-secondary)] xl:hidden">회비 확인</span>
+          <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">회비 확인</span>
           <label className="grid min-w-24 gap-1 text-[10px] font-bold text-[var(--text-secondary)]">
             <span className="sr-only">{member.name} 회비 상태</span>
             <select
@@ -215,8 +243,36 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
           )}
           {duesError && <p role="alert" className="mt-1 text-[10px] font-bold text-[var(--danger)]">{duesError}</p>}
         </div>
+        <div className="min-w-0">
+          <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">초대 확인</span>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-bold text-[var(--text-secondary)]">
+            <label className="inline-flex items-center gap-1.5 whitespace-nowrap">
+              <input
+                type="checkbox"
+                aria-label={`${member.name} 카카오톡 초대 완료`}
+                checked={member.kakaoInvited}
+                disabled={invitationSubmitting}
+                onChange={event => void handleInvitationStatusChange("kakaoInvited", event.target.checked)}
+                className="size-4 accent-[var(--navy)]"
+              />
+              카카오톡
+            </label>
+            <label className="inline-flex items-center gap-1.5 whitespace-nowrap">
+              <input
+                type="checkbox"
+                aria-label={`${member.name} 디스코드 초대 완료`}
+                checked={member.discordInvited}
+                disabled={invitationSubmitting}
+                onChange={event => void handleInvitationStatusChange("discordInvited", event.target.checked)}
+                className="size-4 accent-[var(--navy)]"
+              />
+              디스코드
+            </label>
+          </div>
+          {invitationError && <p role="alert" className="mt-1 text-[10px] font-bold text-[var(--danger)]">{invitationError}</p>}
+        </div>
         <div>
-          <span className="mb-1 block text-[10px] font-bold text-[var(--text-secondary)] xl:hidden">관리</span>
+          <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">관리</span>
           <div className="grid grid-cols-2 gap-2">
             {member.status !== "WITHDRAWN" && (
               <button
@@ -347,9 +403,10 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
   );
 }
 
-type MemberFilterKey = "studentNumber" | "status" | "dues";
+type MemberFilterKey = "studentNumber" | "status" | "dues" | "invitation";
 type MemberStatusFilter = GenerationMemberStatus | "ALL";
 type MemberDuesFilter = GenerationMemberDuesStatus | "ALL";
+type MemberInvitationFilter = keyof typeof invitationFilterLabel;
 
 type FilterHeaderProps = {
   label: string;
@@ -393,6 +450,7 @@ export function MemberListPage() {
   const [studentNumberFilter, setStudentNumberFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<MemberStatusFilter>("ALL");
   const [duesFilter, setDuesFilter] = useState<MemberDuesFilter>("ALL");
+  const [invitationFilter, setInvitationFilter] = useState<MemberInvitationFilter>("ALL");
   const [openFilter, setOpenFilter] = useState<MemberFilterKey | null>(null);
 
   useEffect(() => {
@@ -478,6 +536,7 @@ export function MemberListPage() {
     setStudentNumberFilter("");
     setStatusFilter("ALL");
     setDuesFilter("ALL");
+    setInvitationFilter("ALL");
     setOpenFilter(null);
     setSearchParams(current => {
       const next = new URLSearchParams(current);
@@ -495,9 +554,26 @@ export function MemberListPage() {
     if (normalizedStudentNumber && !member.studentNumber.includes(normalizedStudentNumber)) return false;
     if (statusFilter !== "ALL" && member.status !== statusFilter) return false;
     if (duesFilter !== "ALL" && member.duesStatus !== duesFilter) return false;
+    if (invitationFilter === "KAKAO_PENDING" && member.kakaoInvited) return false;
+    if (invitationFilter === "DISCORD_PENDING" && member.discordInvited) return false;
+    if (invitationFilter === "BOTH_PENDING" && (member.kakaoInvited || member.discordInvited)) return false;
+    if (invitationFilter === "COMPLETE" && (!member.kakaoInvited || !member.discordInvited)) return false;
     return true;
   });
-  const filterApplied = normalizedStudentNumber !== "" || statusFilter !== "ALL" || duesFilter !== "ALL";
+  const kakaoPendingCount = members.filter(member => !member.kakaoInvited).length;
+  const discordPendingCount = members.filter(member => !member.discordInvited).length;
+  const filterApplied = normalizedStudentNumber !== ""
+    || statusFilter !== "ALL"
+    || duesFilter !== "ALL"
+    || invitationFilter !== "ALL";
+
+  function resetFilters() {
+    setStudentNumberFilter("");
+    setStatusFilter("ALL");
+    setDuesFilter("ALL");
+    setInvitationFilter("ALL");
+    setOpenFilter(null);
+  }
 
   return (
     <AppLayout clubId={clubId}>
@@ -528,7 +604,7 @@ export function MemberListPage() {
         </div>
 
         {members.length > 0 && (
-          <div className="mb-4 grid gap-3 rounded-xl border border-[var(--border-subtle)] bg-white p-4 xl:hidden sm:grid-cols-3">
+          <div className="mb-4 grid gap-3 rounded-xl border border-[var(--border-subtle)] bg-white p-4 sm:grid-cols-2 lg:hidden">
             <label className="grid gap-1.5 text-xs font-bold">
               학번 필터
               <input className="control" value={studentNumberFilter} onChange={event => setStudentNumberFilter(event.target.value)} placeholder="학번 입력" />
@@ -547,12 +623,23 @@ export function MemberListPage() {
                 {Object.entries(duesStatusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </label>
+            <label className="grid gap-1.5 text-xs font-bold">
+              초대 필터
+              <select className="control" value={invitationFilter} onChange={event => setInvitationFilter(event.target.value as MemberInvitationFilter)}>
+                {Object.entries(invitationFilterLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
           </div>
+        )}
+        {members.length > 0 && (
+          <p className="mb-4 text-xs font-bold text-[var(--text-secondary)]" aria-live="polite">
+            카카오톡 미초대 {kakaoPendingCount}명 · 디스코드 미초대 {discordPendingCount}명
+          </p>
         )}
         {filterApplied && (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-[var(--panel-muted)] px-4 py-3 text-xs text-[var(--text-secondary)]">
             <span>{filteredMembers.length}명 표시 중</span>
-            <button type="button" onClick={() => { setStudentNumberFilter(""); setStatusFilter("ALL"); setDuesFilter("ALL"); setOpenFilter(null); }} className="font-bold underline">
+            <button type="button" onClick={resetFilters} className="font-bold underline">
               필터 초기화
             </button>
           </div>
@@ -575,15 +662,15 @@ export function MemberListPage() {
         {!loading && !error && members.length > 0 && filteredMembers.length === 0 && (
           <div className="rounded-xl border border-[var(--border-subtle)] bg-white p-8 text-center">
             <p className="text-sm text-[var(--text-secondary)]">필터 조건에 맞는 부원이 없습니다.</p>
-            <button type="button" onClick={() => { setStudentNumberFilter(""); setStatusFilter("ALL"); setDuesFilter("ALL"); setOpenFilter(null); }} className="mt-3 text-xs font-bold text-[var(--navy)] underline">
+            <button type="button" onClick={resetFilters} className="mt-3 text-xs font-bold text-[var(--navy)] underline">
               필터 초기화
             </button>
           </div>
         )}
 
         {!loading && !error && filteredMembers.length > 0 && (
-          <div className="rounded-xl border border-[var(--border-subtle)] bg-white">
-            <div className={`relative z-20 hidden border-b border-[var(--border-subtle)] xl:grid ${memberGridGeometry}`}>
+          <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-white">
+            <div className={`relative z-20 hidden border-b border-[var(--border-subtle)] lg:grid ${memberGridGeometry}`}>
               <FilterHeader label="이름/이메일/학번" applied={normalizedStudentNumber !== ""} open={openFilter === "studentNumber"} onToggle={() => setOpenFilter(current => current === "studentNumber" ? null : "studentNumber")}>
                 <label className="grid gap-1.5 text-xs font-bold text-[var(--text-primary)]">
                   학번
@@ -607,6 +694,14 @@ export function MemberListPage() {
                   <select autoFocus aria-label="표 회비 필터" className="control" value={duesFilter} onChange={event => setDuesFilter(event.target.value as MemberDuesFilter)}>
                     <option value="ALL">전체 회비 상태</option>
                     {Object.entries(duesStatusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </label>
+              </FilterHeader>
+              <FilterHeader label="초대 확인" applied={invitationFilter !== "ALL"} open={openFilter === "invitation"} onToggle={() => setOpenFilter(current => current === "invitation" ? null : "invitation")}>
+                <label className="grid gap-1.5 text-xs font-bold text-[var(--text-primary)]">
+                  초대 여부
+                  <select autoFocus aria-label="표 초대 필터" className="control" value={invitationFilter} onChange={event => setInvitationFilter(event.target.value as MemberInvitationFilter)}>
+                    {Object.entries(invitationFilterLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </label>
               </FilterHeader>

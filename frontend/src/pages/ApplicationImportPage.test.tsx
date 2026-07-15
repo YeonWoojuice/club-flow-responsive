@@ -121,7 +121,7 @@ describe("ApplicationImportPage", () => {
     fireEvent.change(screen.getByLabelText("이메일 (필수)"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("학번 (필수)"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("전화번호 (선택)"), { target: { value: "3" } });
-    fireEvent.change(screen.getByLabelText("디스코드 이름 (선택)"), { target: { value: "4" } });
+    expect(screen.queryByLabelText(/디스코드/)).not.toBeInTheDocument();
     expect(screen.getByText(/나머지 1개 열/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("설정 이름"), { target: { value: "26-1 지원서" } });
     fireEvent.click(screen.getByRole("button", { name: "가져오기 설정 저장" }));
@@ -135,7 +135,6 @@ describe("ApplicationImportPage", () => {
           nameHeader: "이름",
           emailHeader: "이메일",
           studentNumberHeader: "학번",
-          discordNameHeader: "디스코드",
         }),
       }),
     ));
@@ -150,7 +149,6 @@ describe("ApplicationImportPage", () => {
           name: "김지원",
           email: "apply@example.com",
           studentNumber: "20260001",
-          discordName: "crewcat_user",
           answers: [{
             questionKey: "sheet-column-6",
             questionLabel: "지원 동기",
@@ -236,7 +234,6 @@ describe("ApplicationImportPage", () => {
         studentNumberHeader: "학번",
         phoneHeader: "전화번호",
         submittedAtHeader: null,
-        discordNameHeader: null,
       },
       headerFingerprint: "fingerprint",
       createdAt: "2026-07-13T00:00:00Z",

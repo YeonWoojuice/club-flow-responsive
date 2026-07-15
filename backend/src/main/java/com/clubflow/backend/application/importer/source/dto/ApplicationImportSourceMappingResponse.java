@@ -5,16 +5,6 @@ public record ApplicationImportSourceMappingResponse(
         String emailHeader,
         String studentNumberHeader,
         String phoneHeader,
-        String submittedAtHeader,
-        String discordNameHeader
+        String submittedAtHeader
 ) {
-    public ApplicationImportSourceMappingResponse(
-            String nameHeader,
-            String emailHeader,
-            String studentNumberHeader,
-            String phoneHeader,
-            String submittedAtHeader
-    ) {
-        this(nameHeader, emailHeader, studentNumberHeader, phoneHeader, submittedAtHeader, null);
-    }
 }

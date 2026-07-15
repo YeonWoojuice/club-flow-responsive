@@ -50,6 +50,12 @@ public class GenerationMember {
     @Column(name = "dues_status_updated_at")
     private Instant duesStatusUpdatedAt;
 
+    @Column(name = "kakao_invited", nullable = false)
+    private boolean kakaoInvited;
+
+    @Column(name = "discord_invited", nullable = false)
+    private boolean discordInvited;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dues_status_updated_by")
     private User duesStatusUpdatedBy;
@@ -75,6 +81,8 @@ public class GenerationMember {
         this.joinedSource = joinedSource;
         this.status = status;
         this.duesStatus = GenerationMemberDuesStatus.UNKNOWN;
+        this.kakaoInvited = false;
+        this.discordInvited = false;
         this.createdAt = now;
         this.updatedAt = now;
     }
@@ -124,6 +132,16 @@ public class GenerationMember {
         return true;
     }
 
+    public boolean changeInvitationStatus(boolean kakaoInvited, boolean discordInvited) {
+        if (this.kakaoInvited == kakaoInvited && this.discordInvited == discordInvited) {
+            return false;
+        }
+        this.kakaoInvited = kakaoInvited;
+        this.discordInvited = discordInvited;
+        this.updatedAt = Instant.now();
+        return true;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -154,6 +172,14 @@ public class GenerationMember {
 
     public User getDuesStatusUpdatedBy() {
         return duesStatusUpdatedBy;
+    }
+
+    public boolean isKakaoInvited() {
+        return kakaoInvited;
+    }
+
+    public boolean isDiscordInvited() {
+        return discordInvited;
     }
 
     public Instant getCreatedAt() {

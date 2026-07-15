@@ -50,6 +50,12 @@ function optionalInstant(row: string[], column: string) {
   return Number.isNaN(timestamp) ? undefined : new Date(timestamp).toISOString();
 }
 
+function isRemovedDiscordHeader(header: string) {
+  const normalized = header.trim().toLowerCase().replace(/[\s_-]/g, "");
+  return normalized === "디스코드" || normalized === "디스코드이름"
+    || normalized === "discord" || normalized === "discordname";
+}
+
 export function ApplicationImportPage() {
   const { clubId = "" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -68,7 +74,6 @@ export function ApplicationImportPage() {
   const [emailColumn, setEmailColumn] = useState("");
   const [studentNumberColumn, setStudentNumberColumn] = useState("");
   const [phoneColumn, setPhoneColumn] = useState("");
-  const [discordNameColumn, setDiscordNameColumn] = useState("");
   const [submittedAtColumn, setSubmittedAtColumn] = useState("");
   const [previewRows, setPreviewRows] = useState<ApplicationImportRowInput[]>([]);
   const [preview, setPreview] = useState<ApplicationImportPreview | null>(null);
@@ -106,9 +111,11 @@ export function ApplicationImportPage() {
 
   const questionColumnCount = useMemo(() => {
     if (!table) return 0;
-    const fixed = new Set([nameColumn, emailColumn, studentNumberColumn, phoneColumn, discordNameColumn, submittedAtColumn].filter(value => value !== ""));
-    return table.headers.filter((header, index) => header.trim() && !fixed.has(String(index))).length;
-  }, [discordNameColumn, emailColumn, nameColumn, phoneColumn, studentNumberColumn, submittedAtColumn, table]);
+    const fixed = new Set([nameColumn, emailColumn, studentNumberColumn, phoneColumn, submittedAtColumn].filter(value => value !== ""));
+    return table.headers.filter((header, index) => (
+      header.trim() && !isRemovedDiscordHeader(header) && !fixed.has(String(index))
+    )).length;
+  }, [emailColumn, nameColumn, phoneColumn, studentNumberColumn, submittedAtColumn, table]);
 
   const invalidatePreview = () => {
     setPreviewRows([]);
@@ -120,7 +127,6 @@ export function ApplicationImportPage() {
     setEmailColumn("");
     setStudentNumberColumn("");
     setPhoneColumn("");
-    setDiscordNameColumn("");
     setSubmittedAtColumn("");
     invalidatePreview();
   };
@@ -204,7 +210,6 @@ export function ApplicationImportPage() {
     setEmailColumn(indexOf(source.mapping.emailHeader));
     setStudentNumberColumn(indexOf(source.mapping.studentNumberHeader));
     setPhoneColumn(indexOf(source.mapping.phoneHeader));
-    setDiscordNameColumn(indexOf(source.mapping.discordNameHeader));
     setSubmittedAtColumn(indexOf(source.mapping.submittedAtHeader));
     setPreviewRows([]);
     setPreview(null);
@@ -274,7 +279,6 @@ export function ApplicationImportPage() {
         studentNumberHeader: headerAt(studentNumberColumn) ?? "",
         phoneHeader: headerAt(phoneColumn),
         submittedAtHeader: headerAt(submittedAtColumn),
-        discordNameHeader: headerAt(discordNameColumn),
       },
     };
     setSourceBusy(selectedSourceId ?? "new");
@@ -297,17 +301,19 @@ export function ApplicationImportPage() {
   const mappedRows = () => {
     if (!table) return [];
     const fixedIndexes = new Set(
-      [nameColumn, emailColumn, studentNumberColumn, phoneColumn, discordNameColumn, submittedAtColumn]
+      [nameColumn, emailColumn, studentNumberColumn, phoneColumn, submittedAtColumn]
         .filter(value => value !== "")
         .map(Number),
     );
+    table.headers.forEach((header, index) => {
+      if (isRemovedDiscordHeader(header)) fixedIndexes.add(index);
+    });
     return table.rows.map((row, index) => ({
       rowNumber: index + 2,
       name: row[Number(nameColumn)] ?? "",
       email: row[Number(emailColumn)] ?? "",
       studentNumber: row[Number(studentNumberColumn)] ?? "",
       phone: optionalCell(row, phoneColumn),
-      discordName: optionalCell(row, discordNameColumn),
       submittedAt: optionalInstant(row, submittedAtColumn),
       answers: table.headers.flatMap((header, columnIndex) => {
         if (fixedIndexes.has(columnIndex) || !header.trim()) return [];
@@ -329,7 +335,7 @@ export function ApplicationImportPage() {
       setError("지원자를 등록할 진행 중인 학기를 선택해 주세요.");
       return;
     }
-    const selectedColumns = [nameColumn, emailColumn, studentNumberColumn, phoneColumn, discordNameColumn, submittedAtColumn]
+    const selectedColumns = [nameColumn, emailColumn, studentNumberColumn, phoneColumn, submittedAtColumn]
       .filter(value => value !== "");
     if (new Set(selectedColumns).size !== selectedColumns.length) {
       setError("하나의 Sheet 열을 여러 항목에 겹쳐 연결할 수 없습니다.");
@@ -485,7 +491,6 @@ export function ApplicationImportPage() {
               <ColumnSelect label="이메일 (필수)" value={emailColumn} headers={table.headers} onChange={value => changeMappedColumn(setEmailColumn, value)} required />
               <ColumnSelect label="학번 (필수)" value={studentNumberColumn} headers={table.headers} onChange={value => changeMappedColumn(setStudentNumberColumn, value)} required />
               <ColumnSelect label="전화번호 (선택)" value={phoneColumn} headers={table.headers} onChange={value => changeMappedColumn(setPhoneColumn, value)} />
-              <ColumnSelect label="디스코드 이름 (선택)" value={discordNameColumn} headers={table.headers} onChange={value => changeMappedColumn(setDiscordNameColumn, value)} />
               <ColumnSelect label="응답 시간 (선택)" value={submittedAtColumn} headers={table.headers} onChange={value => changeMappedColumn(setSubmittedAtColumn, value)} />
             </div>
             <div className="mt-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--panel-muted)] p-4">

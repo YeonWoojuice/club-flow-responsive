@@ -6,6 +6,7 @@ import com.clubflow.backend.common.NotFoundException;
 import com.clubflow.backend.generation.Generation;
 import com.clubflow.backend.generation.GenerationRepository;
 import com.clubflow.backend.member.dto.ChangeGenerationMemberDuesStatusRequest;
+import com.clubflow.backend.member.dto.ChangeGenerationMemberInvitationStatusRequest;
 import com.clubflow.backend.member.dto.ChangeGenerationMemberStatusRequest;
 import com.clubflow.backend.member.dto.GenerationMemberResponse;
 import com.clubflow.backend.member.dto.GenerationMemberStatusHistoryResponse;
@@ -75,6 +76,19 @@ public class GenerationMemberService {
 
         User changedBy = userService.getByGoogleSub(googleSub);
         member.changeDuesStatus(request.duesStatus(), changedBy);
+        return GenerationMemberResponse.from(member);
+    }
+
+    @Transactional
+    public GenerationMemberResponse changeInvitationStatus(
+            String googleSub,
+            UUID memberId,
+            ChangeGenerationMemberInvitationStatusRequest request
+    ) {
+        GenerationMember member = generationMemberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(() -> new NotFoundException("부원 정보를 찾을 수 없습니다."));
+        clubAccessService.requireAccessibleClub(googleSub, member.getGeneration().getClub().getId());
+        member.changeInvitationStatus(request.kakaoInvited(), request.discordInvited());
         return GenerationMemberResponse.from(member);
     }
 

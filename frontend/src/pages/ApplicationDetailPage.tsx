@@ -132,11 +132,11 @@ export function ApplicationDetailPage() {
               </div>
             </section>
 
-            {application.statusHistory.length > 0 && (
+            {(application.statusHistory?.length ?? 0) > 0 && (
               <section className="rounded-xl border border-[var(--border-subtle)] bg-white p-6">
                 <h2 className="font-extrabold">결과 변경 이력</h2>
                 <ul className="mt-4 space-y-3">
-                  {application.statusHistory.map(history => (
+                  {(application.statusHistory ?? []).map(history => (
                     <li key={history.id} className="rounded-lg bg-[var(--panel-muted)] p-3 text-xs">
                       <p className="font-bold">{statusConfig[history.previousStatus].label} → {statusConfig[history.newStatus].label}</p>
                       <p className="mt-1 text-[var(--text-secondary)]">{history.reason ?? "사유 없음"} · {history.changedByName} · {new Date(history.changedAt).toLocaleString("ko-KR")}</p>

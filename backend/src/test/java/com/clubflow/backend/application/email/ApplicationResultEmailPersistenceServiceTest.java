@@ -40,7 +40,7 @@ class ApplicationResultEmailPersistenceServiceTest {
     }
 
     @Test
-    void 선택_변수_값이_없는_지원자는_실제_발송_기록에서_제외한다() {
+    void 카카오톡_링크_변수_값이_없는_지원자는_실제_발송_기록에서_제외한다() {
         Fixture fixture = fixture();
         UUID clubId = UUID.randomUUID();
         UUID generationId = UUID.randomUUID();
@@ -59,7 +59,6 @@ class ApplicationResultEmailPersistenceServiceTest {
         when(application.getGeneration()).thenReturn(generation);
         when(application.getPerson()).thenReturn(person);
         when(person.getName()).thenReturn("김지원");
-        when(person.getDiscordName()).thenReturn(null);
         when(fixture.applicationRepository.findAllByGenerationIdAndStatusForUpdate(
                 generationId, ApplicationStatus.ACCEPTED
         )).thenReturn(List.of(application));
@@ -68,7 +67,7 @@ class ApplicationResultEmailPersistenceServiceTest {
                 generationId,
                 ApplicationStatus.ACCEPTED,
                 "[{{clubName}}] 합격 안내",
-                "{{memberName}}님의 디스코드 이름은 {{discordName}}입니다.",
+                "{{memberName}}님의 안내 링크는 {{kakaoLink}}입니다.",
                 null,
                 null
         );

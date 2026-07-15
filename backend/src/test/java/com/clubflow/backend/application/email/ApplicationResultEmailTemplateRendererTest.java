@@ -19,32 +19,25 @@ class ApplicationResultEmailTemplateRendererTest {
 
     @Test
     void 지원_결과_메일_변수를_수신자별_값으로_치환한다() {
-        Application application = application("크루캣", "김지원", "crewcat_user");
+        Application application = application("크루캣", "김지원");
 
-        renderer.validate("[{{clubName}}] 결과", "{{memberName}} {{discordName}} {{kakaoLink}}", "https://open.kakao.com/o/example");
+        renderer.validate("[{{clubName}}] 결과", "{{memberName}} {{kakaoLink}}", "https://open.kakao.com/o/example");
         RenderedEmail rendered = renderer.render(
                 "[{{clubName}}] 결과",
-                "{{memberName}} / {{discordName}} / {{kakaoLink}}",
+                "{{memberName}} / {{kakaoLink}}",
                 "https://open.kakao.com/o/example",
                 application
         );
 
         assertThat(rendered.subject()).isEqualTo("[크루캣] 결과");
-        assertThat(rendered.body()).isEqualTo("김지원 / crewcat_user / https://open.kakao.com/o/example");
+        assertThat(rendered.body()).isEqualTo("김지원 / https://open.kakao.com/o/example");
     }
 
     @Test
-    void 사용한_선택_변수_값이_없으면_해당_수신자를_제외할_수_있게_실패한다() {
-        Application application = application("크루캣", "김지원", null);
-
-        assertThatThrownBy(() -> renderer.render(
-                "지원 결과",
-                "디스코드: {{discordName}}",
-                null,
-                application
-        ))
-                .isInstanceOf(MissingTemplateValueException.class)
-                .hasMessageContaining("discordName");
+    void 제거된_디스코드_변수를_거절한다() {
+        assertThatThrownBy(() -> renderer.validate("지원 결과", "{{discordName}}", null))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessageContaining("지원하지 않는");
     }
 
     @Test
@@ -57,7 +50,7 @@ class ApplicationResultEmailTemplateRendererTest {
                 .hasMessageContaining("https");
     }
 
-    private Application application(String clubName, String memberName, String discordName) {
+    private Application application(String clubName, String memberName) {
         Club club = mock(Club.class);
         Generation generation = mock(Generation.class);
         Person person = mock(Person.class);
@@ -65,7 +58,6 @@ class ApplicationResultEmailTemplateRendererTest {
         when(club.getName()).thenReturn(clubName);
         when(generation.getClub()).thenReturn(club);
         when(person.getName()).thenReturn(memberName);
-        when(person.getDiscordName()).thenReturn(discordName);
         when(application.getGeneration()).thenReturn(generation);
         when(application.getPerson()).thenReturn(person);
         return application;
