@@ -312,6 +312,7 @@ export function ApplicationListPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <b className="block text-sm">{app.name}</b>
+                      <span className="mt-0.5 block text-xs text-[var(--text-secondary)]">학번 {app.studentNumber}</span>
                       <span className="mt-0.5 block truncate text-xs text-[var(--text-secondary)]">{app.email}</span>
                     </div>
                     <ApplicationResultStatus status={app.status} emailStatus={app.resultEmailStatus} />
@@ -332,9 +333,11 @@ export function ApplicationListPage() {
             </div>
 
             {/* Desktop: grid table */}
-            <div className="hidden overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-white md:block">
-              <div className="grid grid-cols-[1fr_120px_110px_100px_180px] border-b border-[var(--border-subtle)] px-5 py-3">
-                <span className="text-xs font-bold text-[var(--text-secondary)]">이름 / 이메일</span>
+            <div className="hidden overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-white md:block">
+              <div className="grid min-w-[980px] grid-cols-[120px_110px_minmax(180px,1fr)_100px_100px_90px_180px] border-b border-[var(--border-subtle)] px-5 py-3">
+                <span className="text-xs font-bold text-[var(--text-secondary)]">이름</span>
+                <span className="text-xs font-bold text-[var(--text-secondary)]">학번</span>
+                <span className="text-xs font-bold text-[var(--text-secondary)]">이메일</span>
                 <span className="text-xs font-bold text-[var(--text-secondary)]">학기</span>
                 <span className="text-xs font-bold text-[var(--text-secondary)]">제출일</span>
                 <span className="text-xs font-bold text-[var(--text-secondary)]">출처</span>
@@ -344,12 +347,11 @@ export function ApplicationListPage() {
                 <Link
                   key={app.id}
                   to={`/clubs/${clubId}/applications/${app.id}`}
-                  className="grid grid-cols-[1fr_120px_110px_100px_180px] items-center border-b border-[var(--border-subtle)] px-5 py-4 last:border-0 transition-colors hover:bg-[var(--panel-muted)]"
+                  className="grid min-w-[980px] grid-cols-[120px_110px_minmax(180px,1fr)_100px_100px_90px_180px] items-center border-b border-[var(--border-subtle)] px-5 py-4 last:border-0 transition-colors hover:bg-[var(--panel-muted)]"
                 >
-                  <span>
-                    <b className="block text-sm">{app.name}</b>
-                    <span className="mt-0.5 block text-xs text-[var(--text-secondary)]">{app.email}</span>
-                  </span>
+                  <b className="block truncate text-sm">{app.name}</b>
+                  <span className="text-xs text-[var(--text-secondary)]">{app.studentNumber}</span>
+                  <span title={app.email} className="truncate text-xs text-[var(--text-secondary)]">{app.email}</span>
                   <span className="text-xs text-[var(--text-secondary)]">{app.generationName}</span>
                   <time className="text-xs text-[var(--text-secondary)]">
                     {new Date(app.submittedAt).toLocaleDateString("ko-KR")}

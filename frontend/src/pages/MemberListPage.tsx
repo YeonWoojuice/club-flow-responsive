@@ -52,7 +52,7 @@ const invitationFilterLabel = {
   COMPLETE: "초대 완료",
 } as const;
 
-const memberGridGeometry = "grid-cols-2 gap-x-3 gap-y-2 px-3 lg:min-w-[1040px] lg:grid-cols-[minmax(170px,1.45fr)_72px_58px_76px_minmax(130px,1fr)_minmax(150px,1.1fr)_minmax(160px,1fr)] lg:px-4";
+const memberGridGeometry = "grid-cols-2 gap-x-3 gap-y-2 px-3 lg:min-w-[1220px] lg:grid-cols-[minmax(90px,0.75fr)_95px_110px_minmax(170px,1.35fr)_72px_58px_92px_minmax(130px,1fr)_minmax(150px,1.1fr)] lg:px-4";
 
 function StatusBadge({ status }: { status: GenerationMemberStatus }) {
   if (status === "ACTIVE") {
@@ -91,6 +91,7 @@ type MemberRowProps = {
 };
 
 function MemberRow({ member, onUpdated }: MemberRowProps) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<GenerationMemberStatus>(
     member.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
@@ -171,6 +172,24 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
     setFormOpen(open => !open);
   }
 
+  function toggleDetails() {
+    const willOpen = !detailsOpen;
+    setDetailsOpen(willOpen);
+    setFormError("");
+    setReason("");
+    if (member.status !== "WITHDRAWN") {
+      setTargetStatus(member.status === "ACTIVE" ? "INACTIVE" : "ACTIVE");
+      setFormOpen(willOpen);
+    }
+  }
+
+  function closeDetails() {
+    setDetailsOpen(false);
+    setFormOpen(false);
+    setFormError("");
+    setReason("");
+  }
+
   async function handleDuesStatusChange(duesStatus: GenerationMemberDuesStatus) {
     setDuesSubmitting(true);
     setDuesError("");
@@ -204,10 +223,26 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
   return (
     <article className="border-t border-[var(--border-subtle)] first:border-t-0">
       <div className={`grid py-3 transition-colors hover:bg-[var(--panel-muted)] lg:items-start lg:py-2.5 ${memberGridGeometry}`}>
-        <div className="col-span-2 min-w-0 sm:col-span-1 lg:col-span-1">
-          <span className="block text-sm font-bold text-[var(--text-primary)]">{member.name}</span>
-          <span title={member.email} className="mt-0.5 block truncate text-xs text-[var(--text-secondary)]">{member.email}</span>
-          <span className="mt-0.5 block text-[11px] text-[var(--text-secondary)]">학번 {member.studentNumber}</span>
+        <button
+          type="button"
+          aria-label={`${member.name} 부원 정보`}
+          aria-expanded={detailsOpen}
+          onClick={toggleDetails}
+          className="col-span-2 min-w-0 text-left sm:col-span-1 lg:col-span-1"
+        >
+          <span className="block text-sm font-bold text-[var(--text-primary)] underline-offset-2 hover:underline">{member.name}</span>
+        </button>
+        <div>
+          <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">학번</span>
+          <span className="text-xs text-[var(--text-secondary)]">{member.studentNumber}</span>
+        </div>
+        <div>
+          <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">전화번호</span>
+          <span className="text-xs text-[var(--text-secondary)]">{member.phone ?? "-"}</span>
+        </div>
+        <div className="min-w-0">
+          <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">이메일</span>
+          <span title={member.email} className="block truncate text-xs text-[var(--text-secondary)]">{member.email}</span>
         </div>
         <div className="hidden lg:block">
           <span className="text-xs text-[var(--text-secondary)]">{member.generationName}</span>
@@ -218,7 +253,29 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
         </div>
         <div>
           <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">상태</span>
-          <StatusBadge status={member.status} />
+          {member.status === "WITHDRAWN" ? (
+            <StatusBadge status={member.status} />
+          ) : (
+            <button
+              type="button"
+              aria-label="상태 변경"
+              aria-expanded={formOpen}
+              aria-controls={formId}
+              onClick={toggleForm}
+              className="rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--navy)]"
+            >
+              <StatusBadge status={member.status} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void toggleHistory()}
+            aria-expanded={historyOpen}
+            aria-controls={historyId}
+            className="mt-1 block text-[10px] font-bold text-[var(--text-secondary)] underline"
+          >
+            {historyOpen ? "이력 닫기" : "변경 이력"}
+          </button>
         </div>
         <div className="min-w-0">
           <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">회비 확인</span>
@@ -271,35 +328,30 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
           </div>
           {invitationError && <p role="alert" className="mt-1 text-[10px] font-bold text-[var(--danger)]">{invitationError}</p>}
         </div>
-        <div>
-          <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">관리</span>
-          <div className="grid grid-cols-2 gap-2">
-            {member.status !== "WITHDRAWN" && (
-              <button
-                type="button"
-                onClick={toggleForm}
-                aria-expanded={formOpen}
-                aria-controls={formId}
-                className="w-full whitespace-nowrap rounded-lg border border-[var(--border-subtle)] px-2 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--panel-muted)]"
-              >
-                {formOpen ? "변경 닫기" : "상태 변경"}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={toggleHistory}
-              aria-expanded={historyOpen}
-              aria-controls={historyId}
-              className="w-full whitespace-nowrap rounded-lg border border-[var(--border-subtle)] px-2 py-1.5 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--panel-muted)]"
-            >
-              {historyOpen ? "이력 닫기" : "변경 이력"}
-            </button>
-          </div>
-        </div>
       </div>
-      {(formOpen || historyOpen) && (
+      {(detailsOpen || formOpen || historyOpen) && (
         <div className="border-t border-[var(--border-subtle)] bg-[var(--panel-muted)] px-4 py-4 lg:px-5">
           <div className="grid gap-4 lg:grid-cols-2">
+              {detailsOpen && (
+                <section aria-label={`${member.name} 부원 정보`} className="rounded-xl border border-[var(--border-subtle)] bg-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-extrabold text-[var(--text-primary)]">부원 정보</h3>
+                    <button type="button" onClick={closeDetails} className="text-xs font-bold text-[var(--text-secondary)] underline">
+                      닫기
+                    </button>
+                  </div>
+                  <dl className="mt-3 grid grid-cols-[80px_1fr] gap-x-3 gap-y-2 text-xs">
+                    <dt className="font-bold text-[var(--text-secondary)]">이름</dt><dd>{member.name}</dd>
+                    <dt className="font-bold text-[var(--text-secondary)]">학번</dt><dd>{member.studentNumber}</dd>
+                    <dt className="font-bold text-[var(--text-secondary)]">전화번호</dt><dd>{member.phone ?? "-"}</dd>
+                    <dt className="font-bold text-[var(--text-secondary)]">이메일</dt><dd className="min-w-0 break-all">{member.email}</dd>
+                    <dt className="font-bold text-[var(--text-secondary)]">학기</dt><dd>{member.generationName}</dd>
+                    <dt className="font-bold text-[var(--text-secondary)]">가입 경로</dt><dd>{sourceLabel[member.joinedSource]}</dd>
+                    <dt className="font-bold text-[var(--text-secondary)]">현재 상태</dt><dd>{statusLabel[member.status]}</dd>
+                    <dt className="font-bold text-[var(--text-secondary)]">중도 탈퇴 여부</dt><dd>{member.status === "WITHDRAWN" ? "탈퇴" : "재학 중"}</dd>
+                  </dl>
+                </section>
+              )}
               {formOpen && member.status !== "WITHDRAWN" && (
                 <form id={formId} onSubmit={handleSubmit} className="rounded-xl border border-[var(--border-subtle)] bg-white p-4">
                   <h3 className="text-sm font-extrabold text-[var(--text-primary)]">{member.name} 상태 변경</h3>
@@ -316,8 +368,9 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
                         className="rounded-lg border border-[var(--border-subtle)] bg-white px-3 py-2 text-sm text-[var(--text-primary)]"
                       >
                         {member.status === "ACTIVE" && <option value="INACTIVE">비활동</option>}
+                        {member.status === "ACTIVE" && <option value="WITHDRAWN">중도 탈퇴</option>}
                         {member.status === "INACTIVE" && <option value="ACTIVE">활동 중</option>}
-                        {member.status === "INACTIVE" && <option value="WITHDRAWN">탈퇴</option>}
+                        {member.status === "INACTIVE" && <option value="WITHDRAWN">중도 탈퇴</option>}
                       </select>
                     </label>
                     <label className="grid gap-1 text-xs font-bold text-[var(--text-secondary)]">
@@ -342,7 +395,7 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
-                        onClick={toggleForm}
+                        onClick={detailsOpen ? closeDetails : toggleForm}
                         disabled={submitting}
                         className="rounded-lg px-3 py-2 text-xs font-bold text-[var(--text-secondary)] disabled:opacity-50"
                       >
@@ -447,6 +500,7 @@ export function MemberListPage() {
   const [members, setMembers] = useState<GenerationMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [studentNumberFilter, setStudentNumberFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<MemberStatusFilter>("ALL");
   const [duesFilter, setDuesFilter] = useState<MemberDuesFilter>("ALL");
@@ -533,6 +587,7 @@ export function MemberListPage() {
 
   function selectGeneration(nextId: string) {
     setGenerationId(nextId);
+    setSearchQuery("");
     setStudentNumberFilter("");
     setStatusFilter("ALL");
     setDuesFilter("ALL");
@@ -549,8 +604,15 @@ export function MemberListPage() {
     setMembers(current => current.map(member => member.id === updated.id ? updated : member));
   }
 
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase("ko-KR");
   const normalizedStudentNumber = studentNumberFilter.trim();
   const filteredMembers = members.filter(member => {
+    if (normalizedSearchQuery) {
+      const searchableText = [member.name, member.studentNumber, member.email, member.phone ?? ""]
+        .join(" ")
+        .toLocaleLowerCase("ko-KR");
+      if (!searchableText.includes(normalizedSearchQuery)) return false;
+    }
     if (normalizedStudentNumber && !member.studentNumber.includes(normalizedStudentNumber)) return false;
     if (statusFilter !== "ALL" && member.status !== statusFilter) return false;
     if (duesFilter !== "ALL" && member.duesStatus !== duesFilter) return false;
@@ -562,12 +624,14 @@ export function MemberListPage() {
   });
   const kakaoPendingCount = members.filter(member => !member.kakaoInvited).length;
   const discordPendingCount = members.filter(member => !member.discordInvited).length;
-  const filterApplied = normalizedStudentNumber !== ""
+  const filterApplied = normalizedSearchQuery !== ""
+    || normalizedStudentNumber !== ""
     || statusFilter !== "ALL"
     || duesFilter !== "ALL"
     || invitationFilter !== "ALL";
 
   function resetFilters() {
+    setSearchQuery("");
     setStudentNumberFilter("");
     setStatusFilter("ALL");
     setDuesFilter("ALL");
@@ -583,23 +647,35 @@ export function MemberListPage() {
       </div>
 
       <div className="px-4 py-6 md:px-8">
-        <div className="mb-5 flex flex-col gap-2 rounded-xl border border-[var(--border-subtle)] bg-white p-4 sm:flex-row sm:items-end sm:justify-between">
-          <label className="grid max-w-sm flex-1 gap-1.5 text-xs font-bold text-[var(--text-primary)]">
-            조회할 학기
-            <select
-              className="control"
-              value={generationId}
-              onChange={event => selectGeneration(event.target.value)}
-              disabled={generations.length === 0}
-            >
-              {generations.length === 0 && <option value="">등록된 학기가 없습니다</option>}
-              {generations.map(generation => (
-                <option key={generation.id} value={generation.id}>
-                  {generation.name} {generation.status === "ACTIVE" ? "(활성)" : "(종료)"}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="mb-5 flex flex-col gap-3 rounded-xl border border-[var(--border-subtle)] bg-white p-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="grid flex-1 gap-3 sm:grid-cols-2">
+            <label className="grid gap-1.5 text-xs font-bold text-[var(--text-primary)]">
+              조회할 학기
+              <select
+                className="control"
+                value={generationId}
+                onChange={event => selectGeneration(event.target.value)}
+                disabled={generations.length === 0}
+              >
+                {generations.length === 0 && <option value="">등록된 학기가 없습니다</option>}
+                {generations.map(generation => (
+                  <option key={generation.id} value={generation.id}>
+                    {generation.name} {generation.status === "ACTIVE" ? "(활성)" : "(종료)"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1.5 text-xs font-bold text-[var(--text-primary)]">
+              부원 검색
+              <input
+                type="search"
+                className="control"
+                value={searchQuery}
+                onChange={event => setSearchQuery(event.target.value)}
+                placeholder="이름, 학번, 이메일, 전화번호"
+              />
+            </label>
+          </div>
           <p className="text-xs text-[var(--text-secondary)]">선택한 학기의 부원과 회비 확인 상태만 표시합니다.</p>
         </div>
 
@@ -671,12 +747,15 @@ export function MemberListPage() {
         {!loading && !error && filteredMembers.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-white">
             <div className={`relative z-20 hidden border-b border-[var(--border-subtle)] lg:grid ${memberGridGeometry}`}>
-              <FilterHeader label="이름/이메일/학번" applied={normalizedStudentNumber !== ""} open={openFilter === "studentNumber"} onToggle={() => setOpenFilter(current => current === "studentNumber" ? null : "studentNumber")}>
+              <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">이름</span>
+              <FilterHeader label="학번" applied={normalizedStudentNumber !== ""} open={openFilter === "studentNumber"} onToggle={() => setOpenFilter(current => current === "studentNumber" ? null : "studentNumber")}>
                 <label className="grid gap-1.5 text-xs font-bold text-[var(--text-primary)]">
                   학번
                   <input autoFocus aria-label="표 학번 필터" className="control" value={studentNumberFilter} onChange={event => setStudentNumberFilter(event.target.value)} placeholder="학번 입력" />
                 </label>
               </FilterHeader>
+              <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">전화번호</span>
+              <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">이메일</span>
               <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">학기</span>
               <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">가입 경로</span>
               <FilterHeader label="상태" applied={statusFilter !== "ALL"} open={openFilter === "status"} onToggle={() => setOpenFilter(current => current === "status" ? null : "status")}>
@@ -705,7 +784,6 @@ export function MemberListPage() {
                   </select>
                 </label>
               </FilterHeader>
-              <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">관리</span>
             </div>
             {filteredMembers.map(member => (
               <MemberRow key={member.id} member={member} onUpdated={handleMemberUpdated} />

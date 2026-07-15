@@ -8,6 +8,15 @@ import com.clubflow.backend.application.ApplicationStatus;
 import com.clubflow.backend.application.dto.ApplicationAnswerRequest;
 import com.clubflow.backend.application.dto.ApplicationDetailResponse;
 import com.clubflow.backend.application.dto.ManualApplicationRequest;
+import com.clubflow.backend.application.email.ApplicationResultEmailBatchRepository;
+import com.clubflow.backend.application.email.ApplicationResultEmailBatchStatus;
+import com.clubflow.backend.application.email.ApplicationResultEmailMessageRepository;
+import com.clubflow.backend.application.email.ApplicationResultEmailService;
+import com.clubflow.backend.application.email.EmailSendCommand;
+import com.clubflow.backend.application.email.EmailSendResult;
+import com.clubflow.backend.application.email.EmailSender;
+import com.clubflow.backend.application.email.dto.ApplicationResultEmailBatchResponse;
+import com.clubflow.backend.application.email.dto.ApplicationResultEmailRequest;
 import com.clubflow.backend.club.ClubRepository;
 import com.clubflow.backend.club.ClubService;
 import com.clubflow.backend.club.ClubStaffRepository;
@@ -32,11 +41,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -47,7 +60,7 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, ClubFlowIntegrationTests.EmailTestConfiguration.class})
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(properties = {
         "spring.security.oauth2.client.registration.google.client-id=test-client",
@@ -100,8 +113,19 @@ class ClubFlowIntegrationTests {
     @Autowired
     ApplicationStatusHistoryRepository applicationStatusHistoryRepository;
 
+    @Autowired
+    ApplicationResultEmailService applicationResultEmailService;
+
+    @Autowired
+    ApplicationResultEmailBatchRepository applicationResultEmailBatchRepository;
+
+    @Autowired
+    ApplicationResultEmailMessageRepository applicationResultEmailMessageRepository;
+
     @BeforeEach
     void setUp() {
+        applicationResultEmailMessageRepository.deleteAll();
+        applicationResultEmailBatchRepository.deleteAll();
         statusHistoryRepository.deleteAll();
         applicationStatusHistoryRepository.deleteAll();
         applicationAnswerRepository.deleteAll();
@@ -112,6 +136,33 @@ class ClubFlowIntegrationTests {
         clubStaffRepository.deleteAll();
         clubRepository.deleteAll();
         userRepository.deleteAll();
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class EmailTestConfiguration {
+
+        @Bean
+        @Primary
+        EmailSender testEmailSender() {
+            return new EmailSender() {
+                @Override
+                public boolean isEnabled() {
+                    return true;
+                }
+
+                @Override
+                public List<EmailSendResult> sendBatch(
+                        String batchIdempotencyKey,
+                        List<EmailSendCommand> commands
+                ) {
+                    return commands.stream()
+                            .map(command -> EmailSendResult.sent(
+                                    command.messageId(), "test-provider-" + command.messageId()
+                            ))
+                            .toList();
+                }
+            };
+        }
     }
 
     @Test
@@ -230,6 +281,66 @@ class ClubFlowIntegrationTests {
                 "google-sub-001", application.id(), ApplicationStatus.ACCEPTED, "기존 데이터 정정"
         )).isInstanceOf(ConflictException.class)
                 .hasMessage("이미 부원으로 등록된 기존 지원 결과는 변경할 수 없습니다.");
+    }
+
+    @Test
+    void 합격_메일은_읽기_전용_트랜잭션에_막히지_않고_발송_결과와_부원을_저장한다() {
+        userService.synchronizeGoogleUser(
+                "google-sub-001",
+                "owner@example.com",
+                "회장",
+                null
+        );
+        ClubResponse club = clubService.createClub(
+                "google-sub-001",
+                new CreateClubRequest("아우내", "테스트 동아리")
+        );
+        GenerationResponse generation = generationService.create(
+                "google-sub-001",
+                club.id(),
+                new CreateGenerationRequest(
+                        "2026-2 학기",
+                        LocalDate.of(2026, 7, 1),
+                        LocalDate.of(2026, 12, 31)
+                )
+        );
+        ApplicationDetailResponse application = applicationService.createManual(
+                "google-sub-001",
+                club.id(),
+                new ManualApplicationRequest(
+                        generation.id(),
+                        "지원자",
+                        "applicant@example.com",
+                        "010-0000-0000",
+                        "20260001",
+                        List.of()
+                )
+        );
+        applicationService.changeStatus(
+                "google-sub-001",
+                application.id(),
+                ApplicationStatus.ACCEPTED,
+                null
+        );
+
+        ApplicationResultEmailBatchResponse result = applicationResultEmailService.send(
+                "google-sub-001",
+                club.id(),
+                new ApplicationResultEmailRequest(
+                        generation.id(),
+                        ApplicationStatus.ACCEPTED,
+                        "[아우내] 합격 안내",
+                        "지원자님, 합격을 축하합니다.",
+                        null,
+                        Set.of(application.id())
+                )
+        );
+
+        assertThat(result.status()).isEqualTo(ApplicationResultEmailBatchStatus.COMPLETED);
+        assertThat(result.sentCount()).isEqualTo(1);
+        assertThat(applicationResultEmailBatchRepository.count()).isEqualTo(1);
+        assertThat(applicationResultEmailMessageRepository.count()).isEqualTo(1);
+        assertThat(generationMemberRepository.count()).isEqualTo(1);
     }
 
     @Test

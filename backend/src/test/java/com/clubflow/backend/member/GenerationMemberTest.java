@@ -44,12 +44,11 @@ class GenerationMemberTest {
     }
 
     @Test
-    void 활동중인_부원은_먼저_비활동으로_바꿔야_탈퇴할_수_있다() {
+    void 활동중인_부원도_중도_탈퇴할_수_있다() {
         GenerationMember member = createMember();
 
-        assertThatThrownBy(() -> member.changeStatus(GenerationMemberStatus.WITHDRAWN))
-                .isInstanceOf(ConflictException.class)
-                .hasMessage("활동 중인 부원은 먼저 비활동으로 변경한 뒤 탈퇴 처리해 주세요.");
+        assertThat(member.changeStatus(GenerationMemberStatus.WITHDRAWN)).isTrue();
+        assertThat(member.getStatus()).isEqualTo(GenerationMemberStatus.WITHDRAWN);
     }
 
     @Test

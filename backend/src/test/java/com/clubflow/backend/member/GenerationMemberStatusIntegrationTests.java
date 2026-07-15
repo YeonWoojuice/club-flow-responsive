@@ -137,11 +137,6 @@ class GenerationMemberStatusIntegrationTests {
         generationMemberService.changeStatus(
                 data.googleSub(),
                 data.member().getId(),
-                new ChangeGenerationMemberStatusRequest(GenerationMemberStatus.INACTIVE, "활동 종료")
-        );
-        generationMemberService.changeStatus(
-                data.googleSub(),
-                data.member().getId(),
                 new ChangeGenerationMemberStatusRequest(GenerationMemberStatus.WITHDRAWN, "개인 사정")
         );
 
@@ -150,7 +145,7 @@ class GenerationMemberStatusIntegrationTests {
                 data.member().getId(),
                 new ChangeGenerationMemberStatusRequest(GenerationMemberStatus.ACTIVE, "복귀")
         )).isInstanceOf(ConflictException.class);
-        assertThat(statusHistoryRepository.count()).isEqualTo(2);
+        assertThat(statusHistoryRepository.count()).isEqualTo(1);
         assertThat(generationMemberRepository.findById(data.member().getId()).orElseThrow().getStatus())
                 .isEqualTo(GenerationMemberStatus.WITHDRAWN);
     }

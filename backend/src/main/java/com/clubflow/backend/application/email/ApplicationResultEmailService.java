@@ -22,7 +22,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional(readOnly = true)
 public class ApplicationResultEmailService {
 
     private final ApplicationRepository applicationRepository;
@@ -57,6 +56,7 @@ public class ApplicationResultEmailService {
         this.emailSender = emailSender;
     }
 
+    @Transactional(readOnly = true)
     public ApplicationResultEmailPreviewResponse preview(
             String googleSub,
             UUID clubId,
@@ -107,6 +107,7 @@ public class ApplicationResultEmailService {
         return persistenceService.complete(prepared.batch().getId(), results);
     }
 
+    @Transactional(readOnly = true)
     public ApplicationResultEmailBatchResponse getBatch(String googleSub, UUID clubId, UUID batchId) {
         clubAccessService.requireApplicationResultEmailManager(googleSub, clubId);
         ApplicationResultEmailBatch batch = batchRepository.findByIdAndClubId(batchId, clubId)
