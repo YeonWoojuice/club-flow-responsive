@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
   type RefObject,
 } from "react";
 import {
@@ -406,7 +407,7 @@ function ModeButton({ active, disabled, onClick, children }: { active: boolean; 
   );
 }
 
-function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
+function InfoSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="rounded-xl border border-[var(--border-subtle)] p-4">
       <h3 className="text-sm font-extrabold text-[var(--text-primary)]">{title}</h3>

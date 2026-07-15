@@ -1,8 +1,7 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
-import { ApiError } from "../api/http";
 import type { GenerationMember } from "../types/member";
 import { MemberListPage } from "./MemberListPage";
 
@@ -211,18 +210,15 @@ describe("MemberListPage", () => {
     expect(invitationHeader.parentElement).toHaveClass("bg-[var(--panel-muted)]");
   });
 
-  it("긴 이메일을 한 줄로 줄이고 상태 칸에서 수정 화면을 연다", async () => {
+  it("긴 이메일을 한 줄로 줄이고 이름을 누르면 상세 창을 연다", async () => {
     renderPage();
 
     const email = await screen.findByText("member@example.com");
     expect(email).toHaveClass("truncate");
     expect(email).toHaveAttribute("title", "member@example.com");
 
-    const statusButton = screen.getByRole("button", { name: "상태 변경" });
-    fireEvent.click(statusButton);
-    expect(await screen.findByText("김부원 상태 변경")).toBeInTheDocument();
-    expect(screen.queryByText("관리")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "변경 이력" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "김부원 부원 정보 보기" }));
+    expect(screen.getByRole("dialog", { name: "김부원 부원 정보" })).toHaveTextContent("010-1111-2222");
   });
 
   it("이름과 학번과 이메일과 전화번호를 한 검색창에서 찾는다", async () => {
@@ -241,128 +237,45 @@ describe("MemberListPage", () => {
     expect(screen.getByText("1명 표시 중")).toBeInTheDocument();
   });
 
-  it("활동 중 부원을 비활동으로 변경하고 해당 행을 갱신한다", async () => {
+  it("행의 일반 영역을 누르면 상세 창을 열지만 회비와 초대 입력은 열지 않는다", async () => {
     renderPage();
 
-    fireEvent.click(await screen.findByRole("button", { name: "상태 변경" }));
-    expect(screen.getByLabelText("변경할 상태")).toHaveValue("INACTIVE");
-    fireEvent.change(screen.getByLabelText("사유 (선택)"), { target: { value: "군 복무" } });
-    fireEvent.click(screen.getByRole("button", { name: "비활동으로 변경" }));
+    const email = await screen.findByText("member@example.com");
+    fireEvent.click(email);
+    expect(screen.getByRole("dialog", { name: "김부원 부원 정보" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "부원 정보 창 닫기" }));
 
-    await waitFor(() => expect(changeGenerationMemberStatus).toHaveBeenCalledWith(
-      "member-1",
-      { status: "INACTIVE", reason: "군 복무" },
-    ));
-    expect((await screen.findAllByText("비활동")).length).toBeGreaterThan(0);
-    expect(screen.queryByText("김부원 상태 변경")).not.toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByLabelText("김부원 회비 상태"));
+    fireEvent.click(screen.getByLabelText("김부원 카카오톡 초대 완료"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("부원 이름 칸에서 정보를 확인하고 활동 중 상태에서도 중도 탈퇴한다", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-    changeGenerationMemberStatus.mockResolvedValueOnce({ ...activeMember, status: "WITHDRAWN" });
+  it("상세 창을 닫은 뒤 같은 부원을 다시 열고 원래 버튼으로 초점을 돌린다", async () => {
     renderPage();
 
-    fireEvent.click(await screen.findByRole("button", { name: "김부원 부원 정보" }));
-    expect(screen.getByRole("region", { name: "김부원 부원 정보" })).toHaveTextContent("010-1111-2222");
-    expect(screen.getByText("중도 탈퇴 여부")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("변경할 상태"), { target: { value: "WITHDRAWN" } });
-    fireEvent.click(screen.getByRole("button", { name: "탈퇴 처리" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("탈퇴 사유를 입력해 주세요.");
-    expect(changeGenerationMemberStatus).not.toHaveBeenCalled();
+    const openButton = await screen.findByRole("button", { name: "김부원 부원 정보 보기" });
+    fireEvent.click(openButton);
+    expect(screen.getByRole("dialog", { name: "김부원 부원 정보" })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("사유 (필수)"), { target: { value: "개인 사정" } });
-    fireEvent.click(screen.getByRole("button", { name: "탈퇴 처리" }));
+    fireEvent.click(screen.getByRole("button", { name: "부원 정보 창 닫기" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(openButton).toHaveFocus();
 
-    await waitFor(() => expect(confirm).toHaveBeenCalledOnce());
-    await waitFor(() => expect(changeGenerationMemberStatus).toHaveBeenCalledWith(
-      "member-1",
-      { status: "WITHDRAWN", reason: "개인 사정" },
-    ));
-    expect(screen.queryByRole("button", { name: "상태 변경" })).not.toBeInTheDocument();
+    fireEvent.click(openButton);
+    expect(screen.getByRole("dialog", { name: "김부원 부원 정보" })).toBeInTheDocument();
   });
 
-  it("부원 정보의 닫기 버튼으로 상세 정보와 상태 변경 영역을 함께 닫는다", async () => {
+  it("한 번에 한 부원만 선택하고 닫은 뒤 다른 부원을 연다", async () => {
+    listMembers.mockResolvedValueOnce([activeMember, inactiveUnpaidMember]);
     renderPage();
 
-    fireEvent.click(await screen.findByRole("button", { name: "김부원 부원 정보" }));
-    expect(screen.getByRole("region", { name: "김부원 부원 정보" })).toBeInTheDocument();
-    expect(screen.getByText("김부원 상태 변경")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "김부원 부원 정보 보기" }));
+    expect(screen.getByRole("dialog", { name: "김부원 부원 정보" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "부원 정보 창 닫기" }));
+    fireEvent.click(screen.getByRole("button", { name: "이부원 부원 정보 보기" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
-
-    expect(screen.queryByRole("region", { name: "김부원 부원 정보" })).not.toBeInTheDocument();
-    expect(screen.queryByText("김부원 상태 변경")).not.toBeInTheDocument();
-  });
-
-  it("서버의 상태 변경 오류 메시지를 우선 표시하고 제출 버튼을 다시 활성화한다", async () => {
-    changeGenerationMemberStatus.mockRejectedValueOnce(
-      new ApiError(409, "탈퇴한 부원의 상태는 변경할 수 없습니다."),
-    );
-    renderPage();
-
-    fireEvent.click(await screen.findByRole("button", { name: "상태 변경" }));
-    fireEvent.click(screen.getByRole("button", { name: "비활동으로 변경" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("탈퇴한 부원의 상태는 변경할 수 없습니다.");
-    expect(screen.getByRole("button", { name: "비활동으로 변경" })).toBeEnabled();
-  });
-
-  it("상태 변경 처리 중에는 버튼을 잠가 요청을 한 번만 보낸다", async () => {
-    let resolveChange: (member: GenerationMember) => void = () => undefined;
-    changeGenerationMemberStatus.mockReturnValueOnce(new Promise(resolve => {
-      resolveChange = resolve;
-    }));
-    renderPage();
-
-    fireEvent.click(await screen.findByRole("button", { name: "상태 변경" }));
-    const submit = screen.getByRole("button", { name: "비활동으로 변경" });
-    fireEvent.click(submit);
-
-    expect(await screen.findByRole("button", { name: "변경 중..." })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "변경 중..." }));
-    expect(changeGenerationMemberStatus).toHaveBeenCalledOnce();
-
-    await act(async () => resolveChange({ ...activeMember, status: "INACTIVE" }));
-    expect((await screen.findAllByText("비활동")).length).toBeGreaterThan(0);
-  });
-
-  it("상태 변경 이력의 로딩과 결과를 표시하고 다시 닫는다", async () => {
-    let resolveHistory: (value: unknown[]) => void = () => undefined;
-    listGenerationMemberStatusHistory.mockReturnValueOnce(new Promise(resolve => {
-      resolveHistory = resolve;
-    }));
-    renderPage();
-
-    fireEvent.click(await screen.findByRole("button", { name: "변경 이력" }));
-    expect(screen.getByText("이력을 불러오는 중...")).toBeInTheDocument();
-    resolveHistory([{
-      id: "history-1",
-      previousStatus: "ACTIVE",
-      newStatus: "INACTIVE",
-      reason: "군 복무",
-      changedByUserId: "user-1",
-      changedByName: "운영진",
-      changedAt: "2026-07-10T03:00:00Z",
-    }]);
-
-    expect(await screen.findByText("활동 중 → 비활동")).toBeInTheDocument();
-    expect(screen.getByText("사유: 군 복무")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "이력 닫기" }));
-    expect(screen.queryByLabelText("김부원 상태 변경 이력")).not.toBeInTheDocument();
-  });
-
-  it("상태 변경 이력이 없거나 조회에 실패한 상태를 구분한다", async () => {
-    listGenerationMemberStatusHistory.mockRejectedValueOnce(
-      new ApiError(500, "변경 이력을 조회하지 못했습니다."),
-    );
-    renderPage();
-
-    fireEvent.click(await screen.findByRole("button", { name: "변경 이력" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("변경 이력을 조회하지 못했습니다.");
-
-    listGenerationMemberStatusHistory.mockResolvedValueOnce([]);
-    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
-    expect(await screen.findByText("아직 상태 변경 이력이 없습니다.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "김부원 부원 정보" })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "이부원 부원 정보" })).toBeInTheDocument();
   });
 
   it("제목 행의 상태 필터를 적용하고 적용된 제목을 회색으로 표시한다", async () => {

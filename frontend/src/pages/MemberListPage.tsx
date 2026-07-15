@@ -1,20 +1,18 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
   changeGenerationMemberDuesStatus,
   changeGenerationMemberInvitationStatus,
-  changeGenerationMemberStatus,
-  listGenerationMemberStatusHistory,
   listMembers,
 } from "../api/members";
 import { listGenerations } from "../api/generations";
 import { apiErrorMessage } from "../api/http";
 import { AppLayout } from "../components/AppLayout";
+import { MemberDetailModal } from "../components/MemberDetailModal";
 import type {
   GenerationMember,
   GenerationMemberDuesStatus,
   GenerationMemberStatus,
-  GenerationMemberStatusHistory,
   MemberJoinedSource,
 } from "../types/member";
 import type { Generation } from "../types/generation";
@@ -29,12 +27,6 @@ const statusLabel: Record<GenerationMemberStatus, string> = {
   ACTIVE: "활동 중",
   INACTIVE: "비활동",
   WITHDRAWN: "탈퇴",
-};
-
-const statusActionLabel: Record<GenerationMemberStatus, string> = {
-  ACTIVE: "활동 중으로 변경",
-  INACTIVE: "비활동으로 변경",
-  WITHDRAWN: "탈퇴 처리",
 };
 
 const duesStatusLabel: Record<GenerationMemberDuesStatus, string> = {
@@ -76,119 +68,26 @@ function StatusBadge({ status }: { status: GenerationMemberStatus }) {
   );
 }
 
-function formatChangedAt(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("ko-KR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
 type MemberRowProps = {
   member: GenerationMember;
   onUpdated: (member: GenerationMember) => void;
+  onOpen: (memberId: string, trigger: HTMLElement) => void;
 };
 
-function MemberRow({ member, onUpdated }: MemberRowProps) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
-  const [targetStatus, setTargetStatus] = useState<GenerationMemberStatus>(
-    member.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-  );
-  const [reason, setReason] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [history, setHistory] = useState<GenerationMemberStatusHistory[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState("");
+function isInteractiveTarget(target: EventTarget | null) {
+  return target instanceof HTMLElement
+    && target.closest("button, input, select, textarea, label, a") !== null;
+}
+
+function MemberRow({ member, onUpdated, onOpen }: MemberRowProps) {
+  const openButtonRef = useRef<HTMLButtonElement>(null);
   const [duesSubmitting, setDuesSubmitting] = useState(false);
   const [duesError, setDuesError] = useState("");
   const [invitationSubmitting, setInvitationSubmitting] = useState(false);
   const [invitationError, setInvitationError] = useState("");
-
-  const formId = `member-status-form-${member.id}`;
-  const historyId = `member-status-history-${member.id}`;
   const duesUpdatedDescription = member.duesStatusUpdatedByName && member.duesStatusUpdatedAt
-    ? `${member.duesStatusUpdatedByName} · ${formatChangedAt(member.duesStatusUpdatedAt)}`
+    ? `${member.duesStatusUpdatedByName} · ${new Date(member.duesStatusUpdatedAt).toLocaleString("ko-KR")}`
     : null;
-
-  async function loadHistory() {
-    setHistoryLoading(true);
-    setHistoryError("");
-    try {
-      setHistory(await listGenerationMemberStatusHistory(member.id));
-    } catch (requestError) {
-      setHistoryError(apiErrorMessage(requestError, "상태 변경 이력을 불러오지 못했습니다."));
-    } finally {
-      setHistoryLoading(false);
-    }
-  }
-
-  async function toggleHistory() {
-    const willOpen = !historyOpen;
-    setHistoryOpen(willOpen);
-    if (willOpen && history.length === 0) await loadHistory();
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedReason = reason.trim();
-    if (targetStatus === "WITHDRAWN" && !trimmedReason) {
-      setFormError("탈퇴 사유를 입력해 주세요.");
-      return;
-    }
-    if (trimmedReason.length > 500) {
-      setFormError("사유는 500자 이내로 입력해 주세요.");
-      return;
-    }
-    if (targetStatus === "WITHDRAWN" && !window.confirm("탈퇴 처리 후에는 상태를 되돌릴 수 없습니다. 계속할까요?")) {
-      return;
-    }
-
-    setSubmitting(true);
-    setFormError("");
-    try {
-      const updated = await changeGenerationMemberStatus(member.id, {
-        status: targetStatus,
-        ...(trimmedReason ? { reason: trimmedReason } : {}),
-      });
-      onUpdated(updated);
-      setFormOpen(false);
-      setReason("");
-      if (historyOpen) await loadHistory();
-    } catch (requestError) {
-      setFormError(apiErrorMessage(requestError, "부원 상태를 변경하지 못했습니다."));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function toggleForm() {
-    setFormError("");
-    setReason("");
-    setTargetStatus(member.status === "ACTIVE" ? "INACTIVE" : "ACTIVE");
-    setFormOpen(open => !open);
-  }
-
-  function toggleDetails() {
-    const willOpen = !detailsOpen;
-    setDetailsOpen(willOpen);
-    setFormError("");
-    setReason("");
-    if (member.status !== "WITHDRAWN") {
-      setTargetStatus(member.status === "ACTIVE" ? "INACTIVE" : "ACTIVE");
-      setFormOpen(willOpen);
-    }
-  }
-
-  function closeDetails() {
-    setDetailsOpen(false);
-    setFormOpen(false);
-    setFormError("");
-    setReason("");
-  }
 
   async function handleDuesStatusChange(duesStatus: GenerationMemberDuesStatus) {
     setDuesSubmitting(true);
@@ -222,12 +121,22 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
 
   return (
     <article className="border-t border-[var(--border-subtle)] first:border-t-0">
-      <div className={`grid py-3 transition-colors hover:bg-[var(--panel-muted)] lg:items-start lg:py-2.5 ${memberGridGeometry}`}>
+      <div
+        onClick={event => {
+          if (!isInteractiveTarget(event.target) && openButtonRef.current) {
+            onOpen(member.id, openButtonRef.current);
+          }
+        }}
+        className={`grid cursor-pointer py-3 transition-colors hover:bg-[var(--panel-muted)] lg:items-start lg:py-2.5 ${memberGridGeometry}`}
+      >
         <button
+          ref={openButtonRef}
           type="button"
-          aria-label={`${member.name} 부원 정보`}
-          aria-expanded={detailsOpen}
-          onClick={toggleDetails}
+          aria-label={`${member.name} 부원 정보 보기`}
+          onClick={event => {
+            event.stopPropagation();
+            onOpen(member.id, event.currentTarget);
+          }}
           className="col-span-2 min-w-0 text-left sm:col-span-1 lg:col-span-1"
         >
           <span className="block text-sm font-bold text-[var(--text-primary)] underline-offset-2 hover:underline">{member.name}</span>
@@ -253,29 +162,7 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
         </div>
         <div>
           <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">상태</span>
-          {member.status === "WITHDRAWN" ? (
-            <StatusBadge status={member.status} />
-          ) : (
-            <button
-              type="button"
-              aria-label="상태 변경"
-              aria-expanded={formOpen}
-              aria-controls={formId}
-              onClick={toggleForm}
-              className="rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--navy)]"
-            >
-              <StatusBadge status={member.status} />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void toggleHistory()}
-            aria-expanded={historyOpen}
-            aria-controls={historyId}
-            className="mt-1 block text-[10px] font-bold text-[var(--text-secondary)] underline"
-          >
-            {historyOpen ? "이력 닫기" : "변경 이력"}
-          </button>
+          <StatusBadge status={member.status} />
         </div>
         <div className="min-w-0">
           <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">회비 확인</span>
@@ -329,129 +216,6 @@ function MemberRow({ member, onUpdated }: MemberRowProps) {
           {invitationError && <p role="alert" className="mt-1 text-[10px] font-bold text-[var(--danger)]">{invitationError}</p>}
         </div>
       </div>
-      {(detailsOpen || formOpen || historyOpen) && (
-        <div className="border-t border-[var(--border-subtle)] bg-[var(--panel-muted)] px-4 py-4 lg:px-5">
-          <div className="grid gap-4 lg:grid-cols-2">
-              {detailsOpen && (
-                <section aria-label={`${member.name} 부원 정보`} className="rounded-xl border border-[var(--border-subtle)] bg-white p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-extrabold text-[var(--text-primary)]">부원 정보</h3>
-                    <button type="button" onClick={closeDetails} className="text-xs font-bold text-[var(--text-secondary)] underline">
-                      닫기
-                    </button>
-                  </div>
-                  <dl className="mt-3 grid grid-cols-[80px_1fr] gap-x-3 gap-y-2 text-xs">
-                    <dt className="font-bold text-[var(--text-secondary)]">이름</dt><dd>{member.name}</dd>
-                    <dt className="font-bold text-[var(--text-secondary)]">학번</dt><dd>{member.studentNumber}</dd>
-                    <dt className="font-bold text-[var(--text-secondary)]">전화번호</dt><dd>{member.phone ?? "-"}</dd>
-                    <dt className="font-bold text-[var(--text-secondary)]">이메일</dt><dd className="min-w-0 break-all">{member.email}</dd>
-                    <dt className="font-bold text-[var(--text-secondary)]">학기</dt><dd>{member.generationName}</dd>
-                    <dt className="font-bold text-[var(--text-secondary)]">가입 경로</dt><dd>{sourceLabel[member.joinedSource]}</dd>
-                    <dt className="font-bold text-[var(--text-secondary)]">현재 상태</dt><dd>{statusLabel[member.status]}</dd>
-                    <dt className="font-bold text-[var(--text-secondary)]">중도 탈퇴 여부</dt><dd>{member.status === "WITHDRAWN" ? "탈퇴" : "재학 중"}</dd>
-                  </dl>
-                </section>
-              )}
-              {formOpen && member.status !== "WITHDRAWN" && (
-                <form id={formId} onSubmit={handleSubmit} className="rounded-xl border border-[var(--border-subtle)] bg-white p-4">
-                  <h3 className="text-sm font-extrabold text-[var(--text-primary)]">{member.name} 상태 변경</h3>
-                  <div className="mt-3 grid gap-3">
-                    <label className="grid gap-1 text-xs font-bold text-[var(--text-secondary)]">
-                      변경할 상태
-                      <select
-                        value={targetStatus}
-                        onChange={event => {
-                          setTargetStatus(event.target.value as GenerationMemberStatus);
-                          setFormError("");
-                        }}
-                        disabled={submitting}
-                        className="rounded-lg border border-[var(--border-subtle)] bg-white px-3 py-2 text-sm text-[var(--text-primary)]"
-                      >
-                        {member.status === "ACTIVE" && <option value="INACTIVE">비활동</option>}
-                        {member.status === "ACTIVE" && <option value="WITHDRAWN">중도 탈퇴</option>}
-                        {member.status === "INACTIVE" && <option value="ACTIVE">활동 중</option>}
-                        {member.status === "INACTIVE" && <option value="WITHDRAWN">중도 탈퇴</option>}
-                      </select>
-                    </label>
-                    <label className="grid gap-1 text-xs font-bold text-[var(--text-secondary)]">
-                      사유 {targetStatus === "WITHDRAWN" ? "(필수)" : "(선택)"}
-                      <textarea
-                        value={reason}
-                        onChange={event => setReason(event.target.value)}
-                        maxLength={500}
-                        rows={3}
-                        disabled={submitting}
-                        aria-required={targetStatus === "WITHDRAWN"}
-                        className="resize-y rounded-lg border border-[var(--border-subtle)] bg-white px-3 py-2 text-sm text-[var(--text-primary)]"
-                        placeholder={targetStatus === "WITHDRAWN" ? "탈퇴 사유를 입력해 주세요." : "필요한 경우 사유를 입력해 주세요."}
-                      />
-                    </label>
-                    <p className="text-right text-[10px] text-[var(--text-secondary)]">{reason.length}/500자</p>
-                    {formError && (
-                      <p role="alert" className="rounded-lg bg-[var(--danger-soft)] px-3 py-2 text-xs font-bold text-[var(--danger)]">
-                        {formError}
-                      </p>
-                    )}
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={detailsOpen ? closeDetails : toggleForm}
-                        disabled={submitting}
-                        className="rounded-lg px-3 py-2 text-xs font-bold text-[var(--text-secondary)] disabled:opacity-50"
-                      >
-                        취소
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="rounded-lg bg-[var(--navy)] px-3 py-2 text-xs font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {submitting ? "변경 중..." : statusActionLabel[targetStatus]}
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              )}
-
-              {historyOpen && (
-                <section id={historyId} aria-label={`${member.name} 상태 변경 이력`} className="rounded-xl border border-[var(--border-subtle)] bg-white p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-extrabold text-[var(--text-primary)]">상태 변경 이력</h3>
-                    {historyError && (
-                      <button type="button" onClick={loadHistory} className="text-xs font-bold text-[var(--navy)]">
-                        다시 시도
-                      </button>
-                    )}
-                  </div>
-                  {historyLoading && <p className="mt-3 text-xs text-[var(--text-secondary)]">이력을 불러오는 중...</p>}
-                  {!historyLoading && historyError && (
-                    <p role="alert" className="mt-3 rounded-lg bg-[var(--danger-soft)] px-3 py-2 text-xs font-bold text-[var(--danger)]">
-                      {historyError}
-                    </p>
-                  )}
-                  {!historyLoading && !historyError && history.length === 0 && (
-                    <p className="mt-3 text-xs text-[var(--text-secondary)]">아직 상태 변경 이력이 없습니다.</p>
-                  )}
-                  {!historyLoading && !historyError && history.length > 0 && (
-                    <ul className="mt-3 grid gap-2">
-                      {history.map(item => (
-                        <li key={item.id} className="rounded-lg border border-[var(--border-subtle)] px-3 py-2">
-                          <p className="text-xs font-bold text-[var(--text-primary)]">
-                            {statusLabel[item.previousStatus]} → {statusLabel[item.newStatus]}
-                          </p>
-                          <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
-                            {item.changedByName} · {formatChangedAt(item.changedAt)}
-                          </p>
-                          {item.reason && <p className="mt-1 text-xs text-[var(--text-secondary)]">사유: {item.reason}</p>}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              )}
-          </div>
-        </div>
-      )}
     </article>
   );
 }
@@ -506,6 +270,8 @@ export function MemberListPage() {
   const [duesFilter, setDuesFilter] = useState<MemberDuesFilter>("ALL");
   const [invitationFilter, setInvitationFilter] = useState<MemberInvitationFilter>("ALL");
   const [openFilter, setOpenFilter] = useState<MemberFilterKey | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const memberDetailReturnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -587,6 +353,7 @@ export function MemberListPage() {
 
   function selectGeneration(nextId: string) {
     setGenerationId(nextId);
+    setSelectedMemberId(null);
     setSearchQuery("");
     setStudentNumberFilter("");
     setStatusFilter("ALL");
@@ -604,7 +371,17 @@ export function MemberListPage() {
     setMembers(current => current.map(member => member.id === updated.id ? updated : member));
   }
 
+  function openMemberDetail(memberId: string, trigger: HTMLElement) {
+    memberDetailReturnFocusRef.current = trigger;
+    setSelectedMemberId(memberId);
+  }
+
+  function closeMemberDetail() {
+    setSelectedMemberId(null);
+  }
+
   const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase("ko-KR");
+  const selectedMember = members.find(member => member.id === selectedMemberId) ?? null;
   const normalizedStudentNumber = studentNumberFilter.trim();
   const filteredMembers = members.filter(member => {
     if (normalizedSearchQuery) {
@@ -786,11 +563,24 @@ export function MemberListPage() {
               </FilterHeader>
             </div>
             {filteredMembers.map(member => (
-              <MemberRow key={member.id} member={member} onUpdated={handleMemberUpdated} />
+              <MemberRow
+                key={member.id}
+                member={member}
+                onUpdated={handleMemberUpdated}
+                onOpen={openMemberDetail}
+              />
             ))}
           </div>
         )}
       </div>
+      {selectedMember && (
+        <MemberDetailModal
+          member={selectedMember}
+          returnFocusRef={memberDetailReturnFocusRef}
+          onClose={closeMemberDetail}
+          onUpdated={handleMemberUpdated}
+        />
+      )}
     </AppLayout>
   );
 }
