@@ -50,6 +50,11 @@ function optionalInstant(row: string[], column: string) {
   return Number.isNaN(timestamp) ? undefined : new Date(timestamp).toISOString();
 }
 
+function gradeLevelFromCell(value: string | undefined) {
+  const match = value?.trim().match(/^(\d+)\s*(?:학년)?$/);
+  return match ? Number(match[1]) : 0;
+}
+
 function isRemovedDiscordHeader(header: string) {
   const normalized = header.trim().toLowerCase().replace(/[\s_-]/g, "");
   return normalized === "디스코드" || normalized === "디스코드이름"
@@ -73,6 +78,7 @@ export function ApplicationImportPage() {
   const [nameColumn, setNameColumn] = useState("");
   const [emailColumn, setEmailColumn] = useState("");
   const [studentNumberColumn, setStudentNumberColumn] = useState("");
+  const [gradeLevelColumn, setGradeLevelColumn] = useState("");
   const [phoneColumn, setPhoneColumn] = useState("");
   const [submittedAtColumn, setSubmittedAtColumn] = useState("");
   const [previewRows, setPreviewRows] = useState<ApplicationImportRowInput[]>([]);
@@ -111,11 +117,11 @@ export function ApplicationImportPage() {
 
   const questionColumnCount = useMemo(() => {
     if (!table) return 0;
-    const fixed = new Set([nameColumn, emailColumn, studentNumberColumn, phoneColumn, submittedAtColumn].filter(value => value !== ""));
+    const fixed = new Set([nameColumn, emailColumn, studentNumberColumn, gradeLevelColumn, phoneColumn, submittedAtColumn].filter(value => value !== ""));
     return table.headers.filter((header, index) => (
       header.trim() && !isRemovedDiscordHeader(header) && !fixed.has(String(index))
     )).length;
-  }, [emailColumn, nameColumn, phoneColumn, studentNumberColumn, submittedAtColumn, table]);
+  }, [emailColumn, gradeLevelColumn, nameColumn, phoneColumn, studentNumberColumn, submittedAtColumn, table]);
 
   const invalidatePreview = () => {
     setPreviewRows([]);
@@ -126,6 +132,7 @@ export function ApplicationImportPage() {
     setNameColumn("");
     setEmailColumn("");
     setStudentNumberColumn("");
+    setGradeLevelColumn("");
     setPhoneColumn("");
     setSubmittedAtColumn("");
     invalidatePreview();
@@ -209,6 +216,7 @@ export function ApplicationImportPage() {
     setNameColumn(indexOf(source.mapping.nameHeader));
     setEmailColumn(indexOf(source.mapping.emailHeader));
     setStudentNumberColumn(indexOf(source.mapping.studentNumberHeader));
+    setGradeLevelColumn(indexOf(source.mapping.gradeLevelHeader));
     setPhoneColumn(indexOf(source.mapping.phoneHeader));
     setSubmittedAtColumn(indexOf(source.mapping.submittedAtHeader));
     setPreviewRows([]);
@@ -262,8 +270,8 @@ export function ApplicationImportPage() {
       setError("설정 이름과 Google Sheet, Sheet 탭을 확인해 주세요.");
       return;
     }
-    if (nameColumn === "" || emailColumn === "" || studentNumberColumn === "") {
-      setError("이름, 이메일, 학번 열을 연결한 뒤 저장해 주세요.");
+    if (nameColumn === "" || emailColumn === "" || studentNumberColumn === "" || gradeLevelColumn === "") {
+      setError("이름, 이메일, 학번, 학년 열을 연결한 뒤 저장해 주세요.");
       return;
     }
     const headerAt = (column: string) => column === "" ? null : table.headers[Number(column)] ?? null;
@@ -277,6 +285,7 @@ export function ApplicationImportPage() {
         nameHeader: headerAt(nameColumn) ?? "",
         emailHeader: headerAt(emailColumn) ?? "",
         studentNumberHeader: headerAt(studentNumberColumn) ?? "",
+        gradeLevelHeader: headerAt(gradeLevelColumn) ?? "",
         phoneHeader: headerAt(phoneColumn),
         submittedAtHeader: headerAt(submittedAtColumn),
       },
@@ -301,7 +310,7 @@ export function ApplicationImportPage() {
   const mappedRows = () => {
     if (!table) return [];
     const fixedIndexes = new Set(
-      [nameColumn, emailColumn, studentNumberColumn, phoneColumn, submittedAtColumn]
+      [nameColumn, emailColumn, studentNumberColumn, gradeLevelColumn, phoneColumn, submittedAtColumn]
         .filter(value => value !== "")
         .map(Number),
     );
@@ -313,6 +322,7 @@ export function ApplicationImportPage() {
       name: row[Number(nameColumn)] ?? "",
       email: row[Number(emailColumn)] ?? "",
       studentNumber: row[Number(studentNumberColumn)] ?? "",
+      gradeLevel: gradeLevelFromCell(row[Number(gradeLevelColumn)]),
       phone: optionalCell(row, phoneColumn),
       submittedAt: optionalInstant(row, submittedAtColumn),
       answers: table.headers.flatMap((header, columnIndex) => {
@@ -327,15 +337,15 @@ export function ApplicationImportPage() {
   };
 
   const runPreview = async () => {
-    if (!table || nameColumn === "" || emailColumn === "" || studentNumberColumn === "") {
-      setError("이름, 이메일, 학번 열을 모두 연결해 주세요.");
+    if (!table || nameColumn === "" || emailColumn === "" || studentNumberColumn === "" || gradeLevelColumn === "") {
+      setError("이름, 이메일, 학번, 학년 열을 모두 연결해 주세요.");
       return;
     }
     if (!generationId) {
       setError("지원자를 등록할 진행 중인 학기를 선택해 주세요.");
       return;
     }
-    const selectedColumns = [nameColumn, emailColumn, studentNumberColumn, phoneColumn, submittedAtColumn]
+    const selectedColumns = [nameColumn, emailColumn, studentNumberColumn, gradeLevelColumn, phoneColumn, submittedAtColumn]
       .filter(value => value !== "");
     if (new Set(selectedColumns).size !== selectedColumns.length) {
       setError("하나의 Sheet 열을 여러 항목에 겹쳐 연결할 수 없습니다.");
@@ -480,7 +490,7 @@ export function ApplicationImportPage() {
         {table && (
           <section className="rounded-xl border border-[var(--border-subtle)] bg-white p-5">
             <h2 className="text-sm font-extrabold">3. Sheet의 열 연결하기 (열 매핑)</h2>
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">Sheet에서 이름·이메일·학번이 적힌 열을 지정합니다. 나머지 열은 지원서 질문과 답변으로 자동 저장합니다.</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">Sheet에서 이름·이메일·학번·학년이 적힌 열을 지정합니다. 나머지 열은 지원서 질문과 답변으로 자동 저장합니다.</p>
             {workbook && workbook.tables.length > 1 && <label className="mt-4 grid max-w-md gap-1.5 text-xs font-bold">Sheet 탭
               <select className="control" value={tableIndex} onChange={event => { setTableIndex(Number(event.target.value)); resetMapping(); }}>
                 {workbook.tables.map((item, index) => <option key={`${item.name}-${index}`} value={index}>{item.name}</option>)}
@@ -490,6 +500,7 @@ export function ApplicationImportPage() {
               <ColumnSelect label="이름 (필수)" value={nameColumn} headers={table.headers} onChange={value => changeMappedColumn(setNameColumn, value)} required />
               <ColumnSelect label="이메일 (필수)" value={emailColumn} headers={table.headers} onChange={value => changeMappedColumn(setEmailColumn, value)} required />
               <ColumnSelect label="학번 (필수)" value={studentNumberColumn} headers={table.headers} onChange={value => changeMappedColumn(setStudentNumberColumn, value)} required />
+              <ColumnSelect label="학년 (필수)" value={gradeLevelColumn} headers={table.headers} onChange={value => changeMappedColumn(setGradeLevelColumn, value)} required />
               <ColumnSelect label="전화번호 (선택)" value={phoneColumn} headers={table.headers} onChange={value => changeMappedColumn(setPhoneColumn, value)} />
               <ColumnSelect label="응답 시간 (선택)" value={submittedAtColumn} headers={table.headers} onChange={value => changeMappedColumn(setSubmittedAtColumn, value)} />
             </div>
@@ -537,8 +548,8 @@ export function ApplicationImportPage() {
             </div>
             <div className="mt-4 overflow-x-auto rounded-lg border border-[var(--border-subtle)]">
               <table className="min-w-full text-left text-xs">
-                <thead className="bg-[var(--panel-muted)]"><tr><th className="p-3">행</th><th className="p-3">이름</th><th className="p-3">이메일</th><th className="p-3">판정</th><th className="p-3">설명</th></tr></thead>
-                <tbody>{preview.rows.map(row => <tr key={`${row.rowNumber}-${row.email}`} className="border-t border-[var(--border-subtle)]"><td className="p-3">{row.rowNumber}</td><td className="p-3">{row.name || "-"}</td><td className="p-3">{row.email || "-"}</td><td className="p-3 font-bold">{statusLabel[row.status]}</td><td className="p-3 text-[var(--text-secondary)]">{row.message}</td></tr>)}</tbody>
+                <thead className="bg-[var(--panel-muted)]"><tr><th className="p-3">행</th><th className="p-3">이름</th><th className="p-3">학년</th><th className="p-3">이메일</th><th className="p-3">판정</th><th className="p-3">설명</th></tr></thead>
+                <tbody>{preview.rows.map(row => <tr key={`${row.rowNumber}-${row.email}`} className="border-t border-[var(--border-subtle)]"><td className="p-3">{row.rowNumber}</td><td className="p-3">{row.name || "-"}</td><td className="p-3">{row.gradeLevel == null ? "-" : `${row.gradeLevel}학년`}</td><td className="p-3">{row.email || "-"}</td><td className="p-3 font-bold">{statusLabel[row.status]}</td><td className="p-3 text-[var(--text-secondary)]">{row.message}</td></tr>)}</tbody>
               </table>
             </div>
             <p className="mt-4 text-xs text-[var(--text-secondary)]">

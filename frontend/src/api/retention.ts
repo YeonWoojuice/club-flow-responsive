@@ -40,10 +40,11 @@ export function applyRetention(
   previousGenerationId: string,
   targetGenerationId: string,
   personIds: string[],
+  gradeLevels: Record<string, number>,
 ) {
   return apiRequest<RetentionApplyResult>(`/api/clubs/${clubId}/member-retention/apply`, {
     method: "POST",
-    body: JSON.stringify({ previousGenerationId, targetGenerationId, personIds }),
+    body: JSON.stringify({ previousGenerationId, targetGenerationId, personIds, gradeLevels }),
   });
 }
 

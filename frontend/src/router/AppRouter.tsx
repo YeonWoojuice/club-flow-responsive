@@ -15,6 +15,7 @@ import { ApplicationImportPage } from "../pages/ApplicationImportPage";
 import { MyStaffInvitationsPage } from "../pages/MyStaffInvitationsPage";
 import { StaffInvitationCodePage } from "../pages/StaffInvitationCodePage";
 import { StaffManagementPage } from "../pages/StaffManagementPage";
+import { DuesManagementPage } from "../pages/DuesManagementPage";
 
 export function AppRouter() {
   return (
@@ -35,6 +36,7 @@ export function AppRouter() {
         <Route path="/clubs/:clubId/applications/:applicationId" element={<ApplicationDetailPage />} />
         <Route path="/clubs/:clubId/members" element={<MemberListPage />} />
         <Route path="/clubs/:clubId/members/retention" element={<RetentionImportPage />} />
+        <Route path="/clubs/:clubId/dues" element={<DuesManagementPage />} />
         <Route path="/clubs/:clubId/staff" element={<StaffManagementPage />} />
         <Route path="/clubs/:clubId/staff-invitations" element={<MyStaffInvitationsPage />} />
       </Route>

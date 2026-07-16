@@ -15,6 +15,7 @@ const rows = [{
   name: "김지원",
   email: "apply@example.com",
   studentNumber: "20260001",
+  gradeLevel: 2,
   answers: [{ questionKey: "sheet-column-4", questionLabel: "지원 동기", answerValue: "함께하고 싶습니다." }],
 }];
 

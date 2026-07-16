@@ -46,6 +46,7 @@ export function RetentionImportPage() {
   const [emailColumn, setEmailColumn] = useState("");
   const [nameColumn, setNameColumn] = useState("");
   const [studentNumberColumn, setStudentNumberColumn] = useState("");
+  const [gradeLevelColumn, setGradeLevelColumn] = useState("");
   const [retainedColumn, setRetainedColumn] = useState("");
   const [retainedValues, setRetainedValues] = useState("잔류,예,Y,YES,TRUE");
   const [preview, setPreview] = useState<RetentionPreview | null>(null);
@@ -95,6 +96,7 @@ export function RetentionImportPage() {
     setEmailColumn("");
     setNameColumn("");
     setStudentNumberColumn("");
+    setGradeLevelColumn("");
     setRetainedColumn("");
     invalidatePreview();
   };
@@ -196,8 +198,8 @@ export function RetentionImportPage() {
   };
 
   const runPreview = async () => {
-    if (!table || emailColumn === "" || retainedColumn === "") {
-      setError("이메일 열과 잔류 여부 열을 연결해 주세요.");
+    if (!table || emailColumn === "" || gradeLevelColumn === "" || retainedColumn === "") {
+      setError("이메일, 학년, 잔류 여부 열을 연결해 주세요.");
       return;
     }
     const emailIndex = Number(emailColumn);
@@ -208,6 +210,10 @@ export function RetentionImportPage() {
       email: row[emailIndex] ?? "",
       name: nameColumn === "" ? undefined : row[Number(nameColumn)] ?? "",
       studentNumber: studentNumberColumn === "" ? undefined : row[Number(studentNumberColumn)] ?? "",
+      gradeLevel: (() => {
+        const match = (row[Number(gradeLevelColumn)] ?? "").trim().match(/^(\d+)\s*(?:학년)?$/);
+        return match ? Number(match[1]) : undefined;
+      })(),
       retained: acceptedValues.has((row[retainedIndex] ?? "").trim().toUpperCase()),
     }));
 
@@ -236,7 +242,18 @@ export function RetentionImportPage() {
     setBusy(true);
     setError("");
     try {
-      const result = await applyRetention(clubId, previousGenerationId, targetGenerationId, readyPersonIds);
+      const gradeLevels = Object.fromEntries(
+        (preview?.rows ?? [])
+          .filter(row => row.status === "READY" && row.personId && row.gradeLevel != null)
+          .map(row => [row.personId as string, row.gradeLevel as number]),
+      );
+      const result = await applyRetention(
+        clubId,
+        previousGenerationId,
+        targetGenerationId,
+        readyPersonIds,
+        gradeLevels,
+      );
       setSuccess(`${result.createdCount}명을 새 학기 부원으로 이월했습니다. 이미 등록된 ${result.alreadyMemberCount}명은 건너뛰었습니다.`);
       setPreview(current => current && ({ ...current, readyCount: 0, alreadyMemberCount: current.alreadyMemberCount + result.createdCount,
         rows: current.rows.map(row => row.status === "READY" ? { ...row, status: "ALREADY_TARGET_MEMBER", message: "새 학기 부원으로 이월되었습니다." } : row) }));
@@ -329,7 +346,7 @@ export function RetentionImportPage() {
         {workbook && workbook.tables.length > 0 && (
           <section className="rounded-xl border border-[var(--border-subtle)] bg-white p-5">
             <h2 className="text-sm font-extrabold">3. 열 이름 연결 (열 매핑)</h2>
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">파일의 어떤 열이 이메일·잔류 여부인지 지정합니다. 같은 양식이라도 열 순서가 달라도 처리할 수 있습니다.</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">파일의 어떤 열이 이메일·학년·잔류 여부인지 지정합니다. 같은 양식이라도 열 순서가 달라도 처리할 수 있습니다.</p>
             {workbook.tables.length > 1 && <label className="mt-4 grid gap-1.5 text-xs font-bold">시트
               <select className="control" value={tableIndex} onChange={event => { setTableIndex(Number(event.target.value)); resetMapping(); }}>
                 {workbook.tables.map((item, index) => <option key={`${item.name}-${index}`} value={index}>{item.name}</option>)}
@@ -337,6 +354,7 @@ export function RetentionImportPage() {
             </label>}
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <ColumnSelect label="이메일 (필수)" value={emailColumn} headers={table?.headers ?? []} onChange={value => changeMappedColumn(setEmailColumn, value)} required />
+              <ColumnSelect label="학년 (필수)" value={gradeLevelColumn} headers={table?.headers ?? []} onChange={value => changeMappedColumn(setGradeLevelColumn, value)} required />
               <ColumnSelect label="잔류 여부 (필수)" value={retainedColumn} headers={table?.headers ?? []} onChange={value => changeMappedColumn(setRetainedColumn, value)} required />
               <ColumnSelect label="이름 (선택)" value={nameColumn} headers={table?.headers ?? []} onChange={value => changeMappedColumn(setNameColumn, value)} />
               <ColumnSelect label="학번 (선택)" value={studentNumberColumn} headers={table?.headers ?? []} onChange={value => changeMappedColumn(setStudentNumberColumn, value)} />
@@ -361,8 +379,8 @@ export function RetentionImportPage() {
             </div>
             <div className="mt-4 overflow-x-auto rounded-lg border border-[var(--border-subtle)]">
               <table className="min-w-full text-left text-xs">
-                <thead className="bg-[var(--panel-muted)]"><tr><th className="p-3">행</th><th className="p-3">이름</th><th className="p-3">이메일</th><th className="p-3">판정</th><th className="p-3">설명</th></tr></thead>
-                <tbody>{preview.rows.map(row => <tr key={`${row.rowNumber}-${row.email}`} className="border-t border-[var(--border-subtle)]"><td className="p-3">{row.rowNumber}</td><td className="p-3">{row.name || "-"}</td><td className="p-3">{row.email || "-"}</td><td className="p-3 font-bold">{statusLabel[row.status]}</td><td className="p-3 text-[var(--text-secondary)]">{row.message}</td></tr>)}</tbody>
+                <thead className="bg-[var(--panel-muted)]"><tr><th className="p-3">행</th><th className="p-3">이름</th><th className="p-3">학년</th><th className="p-3">이메일</th><th className="p-3">판정</th><th className="p-3">설명</th></tr></thead>
+                <tbody>{preview.rows.map(row => <tr key={`${row.rowNumber}-${row.email}`} className="border-t border-[var(--border-subtle)]"><td className="p-3">{row.rowNumber}</td><td className="p-3">{row.name || "-"}</td><td className="p-3">{row.gradeLevel == null ? "-" : `${row.gradeLevel}학년`}</td><td className="p-3">{row.email || "-"}</td><td className="p-3 font-bold">{statusLabel[row.status]}</td><td className="p-3 text-[var(--text-secondary)]">{row.message}</td></tr>)}</tbody>
               </table>
             </div>
             <p className="mt-4 text-xs text-[var(--text-secondary)]">

@@ -3,6 +3,8 @@ package com.clubflow.backend.member;
 import com.clubflow.backend.club.ClubAccessService;
 import com.clubflow.backend.common.InvalidRequestException;
 import com.clubflow.backend.common.NotFoundException;
+import com.clubflow.backend.common.ConflictException;
+import com.clubflow.backend.dues.DuesService;
 import com.clubflow.backend.generation.Generation;
 import com.clubflow.backend.generation.GenerationRepository;
 import com.clubflow.backend.member.dto.ChangeGenerationMemberDuesStatusRequest;
@@ -28,30 +30,45 @@ public class GenerationMemberService {
     private final ClubAccessService clubAccessService;
     private final UserService userService;
     private final GenerationRepository generationRepository;
+    private final DuesService duesService;
 
     public GenerationMemberService(
             GenerationMemberRepository generationMemberRepository,
             GenerationMemberStatusHistoryRepository statusHistoryRepository,
             ClubAccessService clubAccessService,
             UserService userService,
-            GenerationRepository generationRepository
+            GenerationRepository generationRepository,
+            DuesService duesService
     ) {
         this.generationMemberRepository = generationMemberRepository;
         this.statusHistoryRepository = statusHistoryRepository;
         this.clubAccessService = clubAccessService;
         this.userService = userService;
         this.generationRepository = generationRepository;
+        this.duesService = duesService;
     }
 
     @Transactional
     public GenerationMember ensureAcceptedMember(Generation generation, Person person) {
+        return ensureAcceptedMember(generation, person, null);
+    }
+
+    @Transactional
+    public GenerationMember ensureAcceptedMember(
+            Generation generation,
+            Person person,
+            Integer gradeLevel
+    ) {
         return generationMemberRepository.findByGenerationIdAndPersonId(
                         generation.getId(),
                         person.getId()
                 )
-                .orElseGet(() -> generationMemberRepository.save(
-                        GenerationMember.createFromAcceptedApplication(generation, person)
-                ));
+                .orElseGet(() -> {
+                    GenerationMember member = generationMemberRepository.save(
+                            GenerationMember.createFromAcceptedApplication(generation, person, gradeLevel));
+                    duesService.createAssessmentIfPolicyExists(member);
+                    return member;
+                });
     }
 
     public List<GenerationMemberResponse> list(String googleSub, UUID clubId, UUID generationId) {
@@ -73,6 +90,9 @@ public class GenerationMemberService {
         GenerationMember member = generationMemberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new NotFoundException("부원 정보를 찾을 수 없습니다."));
         clubAccessService.requireAccessibleClub(googleSub, member.getGeneration().getClub().getId());
+        if (duesService.hasPolicy(member.getGeneration().getId())) {
+            throw new ConflictException("회비가 설정된 학기는 회비 관리 화면에서 변경해 주세요.");
+        }
 
         User changedBy = userService.getByGoogleSub(googleSub);
         member.changeDuesStatus(request.duesStatus(), changedBy);

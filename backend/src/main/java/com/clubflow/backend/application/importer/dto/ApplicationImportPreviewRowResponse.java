@@ -11,6 +11,7 @@ public record ApplicationImportPreviewRowResponse(
         String email,
         String phone,
         String studentNumber,
+        Integer gradeLevel,
         Instant submittedAt,
         UUID personId,
         ApplicationImportRowStatus status,

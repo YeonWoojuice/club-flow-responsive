@@ -8,14 +8,12 @@ import { MemberListPage } from "./MemberListPage";
 const {
   listGenerations,
   listMembers,
-  changeGenerationMemberDuesStatus,
   changeGenerationMemberInvitationStatus,
   changeGenerationMemberStatus,
   listGenerationMemberStatusHistory,
 } = vi.hoisted(() => ({
   listGenerations: vi.fn(),
   listMembers: vi.fn(),
-  changeGenerationMemberDuesStatus: vi.fn(),
   changeGenerationMemberInvitationStatus: vi.fn(),
   changeGenerationMemberStatus: vi.fn(),
   listGenerationMemberStatusHistory: vi.fn(),
@@ -23,7 +21,6 @@ const {
 
 vi.mock("../api/members", () => ({
   listMembers,
-  changeGenerationMemberDuesStatus,
   changeGenerationMemberInvitationStatus,
   changeGenerationMemberStatus,
   listGenerationMemberStatusHistory,
@@ -42,6 +39,7 @@ const activeMember: GenerationMember = {
   email: "member@example.com",
   phone: "010-1111-2222",
   studentNumber: "20260001",
+  gradeLevel: 2,
   joinedSource: "APPLICATION_ACCEPT",
   status: "REGULAR",
   duesStatus: "UNKNOWN",
@@ -93,13 +91,6 @@ describe("MemberListPage", () => {
     listMembers.mockResolvedValue([activeMember]);
     listGenerationMemberStatusHistory.mockResolvedValue([]);
     changeGenerationMemberStatus.mockResolvedValue({ ...activeMember, status: "INACTIVE" });
-    changeGenerationMemberDuesStatus.mockResolvedValue({
-      ...activeMember,
-      duesStatus: "PAID",
-      duesStatusUpdatedAt: "2026-07-13T08:00:00Z",
-      duesStatusUpdatedByUserId: "user-1",
-      duesStatusUpdatedByName: "회계 운영진",
-    });
     changeGenerationMemberInvitationStatus.mockResolvedValue({
       ...activeMember,
       kakaoInvited: true,
@@ -124,15 +115,10 @@ describe("MemberListPage", () => {
     await waitFor(() => expect(listMembers).toHaveBeenCalledWith("club-1", "generation-old"));
   });
 
-  it("회계 부원이 회비 확인 상태를 납부로 변경한다", async () => {
+  it("회비 상태는 읽기 전용으로 표시하고 변경 선택창은 보여주지 않는다", async () => {
     renderPage();
-
-    fireEvent.change(await screen.findByLabelText("김부원 회비 상태"), { target: { value: "PAID" } });
-
-    await waitFor(() => expect(changeGenerationMemberDuesStatus).toHaveBeenCalledWith("member-1", "PAID"));
-    const updatedDescription = await screen.findByText(/회계 운영진/);
-    expect(updatedDescription).toHaveClass("truncate", "whitespace-nowrap");
-    expect(updatedDescription).toHaveAttribute("title", expect.stringContaining("회계 운영진"));
+    expect(await screen.findByText("확인 필요")).toBeInTheDocument();
+    expect(screen.queryByLabelText("김부원 회비 상태")).not.toBeInTheDocument();
   });
 
   it("작은 화면은 2열 압축 카드이고 1024px부터 표 형태를 적용한다", async () => {
@@ -147,7 +133,7 @@ describe("MemberListPage", () => {
       "gap-x-3",
       "px-3",
       "grid-cols-2",
-      "lg:min-w-[1220px]",
+      "lg:min-w-[1280px]",
       "lg:items-start",
     );
     expect(desktopHeader).toHaveClass(
@@ -155,7 +141,7 @@ describe("MemberListPage", () => {
       "lg:grid",
       "gap-x-3",
       "px-3",
-      "lg:min-w-[1220px]",
+      "lg:min-w-[1280px]",
     );
     expect(mobileFilters).toHaveClass("lg:hidden");
   });
@@ -237,7 +223,7 @@ describe("MemberListPage", () => {
     expect(screen.getByText("1명 표시 중")).toBeInTheDocument();
   });
 
-  it("행의 일반 영역을 누르면 상세 창을 열지만 회비와 초대 입력은 열지 않는다", async () => {
+  it("행의 일반 영역을 누르면 상세 창을 열지만 초대 입력은 열지 않는다", async () => {
     renderPage();
 
     const email = await screen.findByText("member@example.com");
@@ -245,7 +231,6 @@ describe("MemberListPage", () => {
     expect(screen.getByRole("dialog", { name: "김부원 부원 정보" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "부원 정보 창 닫기" }));
 
-    fireEvent.mouseDown(screen.getByLabelText("김부원 회비 상태"));
     fireEvent.click(screen.getByLabelText("김부원 카카오톡 초대 완료"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -316,18 +301,39 @@ describe("MemberListPage", () => {
     expect(screen.getByText("1명 표시 중")).toBeInTheDocument();
   });
 
-  it("학번과 회비 여부를 함께 필터링하고 초기화한다", async () => {
+  it("학번으로 필터링하고 초기화한다", async () => {
     listMembers.mockResolvedValueOnce([activeMember, inactiveUnpaidMember]);
     renderPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "학번" }));
     fireEvent.change(screen.getByLabelText("표 학번 필터"), { target: { value: "2025" } });
-    fireEvent.click(screen.getByRole("button", { name: "회비 확인" }));
-    fireEvent.change(screen.getByLabelText("표 회비 필터"), { target: { value: "UNPAID" } });
-
     await waitFor(() => expect(screen.queryAllByText("이부원").length).toBeGreaterThan(0));
     expect(screen.queryAllByText("김부원")).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "필터 초기화" }));
     await waitFor(() => expect(screen.queryAllByText("김부원").length).toBeGreaterThan(0));
+  });
+
+  it("기본 정렬은 탈퇴와 활동 여부, 학년, 이름 가나다 순서이고 다른 정렬 기준으로 바꿀 수 있다", async () => {
+    const activeFirstGradeB = { ...activeMember, id: "active-grade-1-b", name: "나나", gradeLevel: 1 };
+    const activeFirstGradeA = { ...activeMember, id: "active-grade-1-a", name: "가나", gradeLevel: 1 };
+    const activeThirdGrade = { ...activeMember, id: "active-grade-3", name: "다나", gradeLevel: 3 };
+    const inactiveFirstGrade = { ...inactiveUnpaidMember, id: "inactive-grade-1", name: "라나", gradeLevel: 1 };
+    const withdrawnFirstGrade = { ...activeMember, id: "withdrawn-grade-1", name: "마나", gradeLevel: 1, status: "WITHDRAWN" as const };
+    listMembers.mockResolvedValueOnce([
+      withdrawnFirstGrade,
+      inactiveFirstGrade,
+      activeThirdGrade,
+      activeFirstGradeB,
+      activeFirstGradeA,
+    ]);
+    renderPage();
+
+    await waitFor(() => expect(
+      screen.getAllByRole("button", { name: /부원 정보 보기/ }).map(button => button.textContent),
+    ).toEqual(["가나", "나나", "다나", "라나", "마나"]));
+    expect(screen.getByLabelText("정렬 기준")).toHaveValue("DEFAULT");
+    expect(screen.getByRole("option", { name: "탈퇴/활동 여부 → 학년순 → 이름 가나다순 (기본)" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("정렬 기준"), { target: { value: "NAME_ASC" } });
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /부원 정보 보기/ })[0]).toHaveTextContent("가나"));
   });
 });

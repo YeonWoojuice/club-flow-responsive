@@ -13,8 +13,8 @@ type SourceInputSchema = Schemas["UpsertApplicationImportSourceRequest"];
 export type ApplicationImportAnswerInput = Required<AnswerSchema>;
 
 export type ApplicationImportRowInput = Required<
-  Pick<RowSchema, "rowNumber" | "name" | "email" | "studentNumber">
-> & Omit<RowSchema, "rowNumber" | "name" | "email" | "studentNumber" | "answers"> & {
+  Pick<RowSchema, "rowNumber" | "name" | "email" | "studentNumber" | "gradeLevel">
+> & Omit<RowSchema, "rowNumber" | "name" | "email" | "studentNumber" | "gradeLevel" | "answers"> & {
   answers: ApplicationImportAnswerInput[];
 };
 
@@ -33,8 +33,9 @@ export type ApplicationImportWorkbook = ParsedWorkbook;
 
 export type ApplicationImportSourceMapping = Required<Omit<
   SourceMappingSchema,
-  "phoneHeader" | "submittedAtHeader"
+  "gradeLevelHeader" | "phoneHeader" | "submittedAtHeader"
 >> & {
+  gradeLevelHeader: string | null;
   phoneHeader: string | null;
   submittedAtHeader: string | null;
 };
@@ -48,6 +49,7 @@ export type ApplicationImportSourceInput = Omit<SourceInputSchema, "mapping"> & 
     nameHeader: string;
     emailHeader: string;
     studentNumberHeader: string;
+    gradeLevelHeader: string;
     phoneHeader: string | null;
     submittedAtHeader: string | null;
   };

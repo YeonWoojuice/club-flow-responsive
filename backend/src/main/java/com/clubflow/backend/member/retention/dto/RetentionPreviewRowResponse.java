@@ -9,6 +9,7 @@ public record RetentionPreviewRowResponse(
         String name,
         String email,
         String studentNumber,
+        Integer gradeLevel,
         UUID personId,
         RetentionRowStatus status,
         String message

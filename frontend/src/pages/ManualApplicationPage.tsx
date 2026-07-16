@@ -21,6 +21,7 @@ export function ManualApplicationPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [studentNumber, setStudentNumber] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
   const [answers, setAnswers] = useState<AnswerInput[]>([
     { id: 1, questionLabel: "지원 동기", answerValue: "" },
   ]);
@@ -62,6 +63,7 @@ export function ManualApplicationPage() {
         email: email.trim().toLowerCase(),
         phone: phone.trim() || undefined,
         studentNumber,
+        gradeLevel: Number(gradeLevel),
         applicationAnswers: answers.map((answer, index) => ({
           questionKey: `manual_${index + 1}`,
           questionLabel: answer.questionLabel,
@@ -139,6 +141,19 @@ export function ManualApplicationPage() {
                     className="control"
                     value={studentNumber}
                     onChange={event => setStudentNumber(event.target.value)}
+                    required
+                  />
+                </label>
+                <label className="grid gap-1.5 text-xs font-bold">
+                  학년
+                  <input
+                    className="control"
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={gradeLevel}
+                    onChange={event => setGradeLevel(event.target.value)}
+                    placeholder="예: 2"
                     required
                   />
                 </label>

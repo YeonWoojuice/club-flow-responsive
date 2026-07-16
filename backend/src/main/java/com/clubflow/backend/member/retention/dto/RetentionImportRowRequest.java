@@ -9,7 +9,17 @@ public record RetentionImportRowRequest(
         String name,
         String email,
         String studentNumber,
+        Integer gradeLevel,
         @NotNull(message = "잔류 여부를 선택해 주세요.")
         Boolean retained
 ) {
+    public RetentionImportRowRequest(
+            int rowNumber,
+            String name,
+            String email,
+            String studentNumber,
+            Boolean retained
+    ) {
+        this(rowNumber, name, email, studentNumber, 1, retained);
+    }
 }

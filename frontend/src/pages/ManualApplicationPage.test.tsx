@@ -35,6 +35,7 @@ describe("ManualApplicationPage", () => {
     await screen.findByRole("option", { name: "26-1" });
     fireEvent.change(screen.getByLabelText("이름"), { target: { value: "김지원" } });
     fireEvent.change(screen.getByLabelText("학번"), { target: { value: "20260001" } });
+    fireEvent.change(screen.getByLabelText("학년"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("이메일"), { target: { value: "APPLY@example.com" } });
     fireEvent.change(screen.getByLabelText("답변"), { target: { value: "함께 활동하고 싶습니다." } });
     fireEvent.click(screen.getByRole("button", { name: "지원자 등록" }));
@@ -43,6 +44,7 @@ describe("ManualApplicationPage", () => {
       "club-1",
       expect.objectContaining({
         email: "apply@example.com",
+        gradeLevel: 2,
       }),
     ));
     expect(screen.queryByLabelText(/디스코드/)).not.toBeInTheDocument();

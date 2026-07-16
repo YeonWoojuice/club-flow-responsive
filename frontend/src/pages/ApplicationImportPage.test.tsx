@@ -62,11 +62,11 @@ describe("ApplicationImportPage", () => {
       tables: [{
         sheetId: 0,
         name: "설문지 응답 1",
-        headers: ["이름", "이메일", "학번", "전화번호", "디스코드", "지원 동기"],
+        headers: ["이름", "이메일", "학번", "학년", "전화번호", "디스코드", "지원 동기"],
         rows: [
-          ["김지원", "apply@example.com", "20260001", "010-1234-5678", "crewcat_user", "함께 활동하고 싶습니다."],
-          ["중복1", "same@example.com", "20260002", "", "", "첫 번째"],
-          ["중복2", "SAME@example.com", "20260003", "", "", "두 번째"],
+          ["김지원", "apply@example.com", "20260001", "2학년", "010-1234-5678", "crewcat_user", "함께 활동하고 싶습니다."],
+          ["중복1", "same@example.com", "20260002", "1", "", "", "첫 번째"],
+          ["중복2", "SAME@example.com", "20260003", "3", "", "", "두 번째"],
         ],
       }],
     });
@@ -77,9 +77,9 @@ describe("ApplicationImportPage", () => {
       invalidCount: 0,
       alreadyAppliedCount: 0,
       rows: [
-        { rowNumber: 2, name: "김지원", email: "apply@example.com", status: "READY", message: "등록할 수 있습니다." },
-        { rowNumber: 3, name: "중복1", email: "same@example.com", status: "DUPLICATE_IN_SOURCE", message: "같은 이메일이 여러 번 있습니다." },
-        { rowNumber: 4, name: "중복2", email: "same@example.com", status: "DUPLICATE_IN_SOURCE", message: "같은 이메일이 여러 번 있습니다." },
+        { rowNumber: 2, name: "김지원", email: "apply@example.com", gradeLevel: 2, status: "READY", message: "등록할 수 있습니다." },
+        { rowNumber: 3, name: "중복1", email: "same@example.com", gradeLevel: 1, status: "DUPLICATE_IN_SOURCE", message: "같은 이메일이 여러 번 있습니다." },
+        { rowNumber: 4, name: "중복2", email: "same@example.com", gradeLevel: 3, status: "DUPLICATE_IN_SOURCE", message: "같은 이메일이 여러 번 있습니다." },
       ],
     });
     applyApplicationImport.mockResolvedValue({
@@ -120,7 +120,8 @@ describe("ApplicationImportPage", () => {
     fireEvent.change(screen.getByLabelText("이름 (필수)"), { target: { value: "0" } });
     fireEvent.change(screen.getByLabelText("이메일 (필수)"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("학번 (필수)"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("전화번호 (선택)"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("학년 (필수)"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("전화번호 (선택)"), { target: { value: "4" } });
     expect(screen.queryByLabelText(/디스코드/)).not.toBeInTheDocument();
     expect(screen.getByText(/나머지 1개 열/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("설정 이름"), { target: { value: "26-1 지원서" } });
@@ -135,6 +136,7 @@ describe("ApplicationImportPage", () => {
           nameHeader: "이름",
           emailHeader: "이메일",
           studentNumberHeader: "학번",
+          gradeLevelHeader: "학년",
         }),
       }),
     ));
@@ -149,8 +151,9 @@ describe("ApplicationImportPage", () => {
           name: "김지원",
           email: "apply@example.com",
           studentNumber: "20260001",
+          gradeLevel: 2,
           answers: [{
-            questionKey: "sheet-column-6",
+            questionKey: "sheet-column-7",
             questionLabel: "지원 동기",
             answerValue: "함께 활동하고 싶습니다.",
           }],
@@ -190,6 +193,7 @@ describe("ApplicationImportPage", () => {
     fireEvent.change(screen.getByLabelText("이름 (필수)"), { target: { value: "0" } });
     fireEvent.change(screen.getByLabelText("이메일 (필수)"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("학번 (필수)"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("학년 (필수)"), { target: { value: "3" } });
     fireEvent.click(screen.getByRole("button", { name: "중복 확인하고 미리보기" }));
     await screen.findByRole("button", { name: "등록 가능 1명 확정" });
 
@@ -232,6 +236,7 @@ describe("ApplicationImportPage", () => {
         nameHeader: "이름",
         emailHeader: "이메일",
         studentNumberHeader: "학번",
+        gradeLevelHeader: "학년",
         phoneHeader: "전화번호",
         submittedAtHeader: null,
       },
@@ -245,8 +250,8 @@ describe("ApplicationImportPage", () => {
       table: {
         sheetId: 0,
         name: "설문지 응답 1",
-        headers: ["이름", "이메일", "학번", "전화번호"],
-        rows: [["김지원", "apply@example.com", "20260001", "010-1234-5678"]],
+        headers: ["이름", "이메일", "학번", "학년", "전화번호"],
+        rows: [["김지원", "apply@example.com", "20260001", "2", "010-1234-5678"]],
       },
     });
     render(
@@ -261,5 +266,6 @@ describe("ApplicationImportPage", () => {
     expect(await screen.findByLabelText("이름 (필수)")).toHaveValue("0");
     expect(screen.getByLabelText("이메일 (필수)")).toHaveValue("1");
     expect(screen.getByLabelText("학번 (필수)")).toHaveValue("2");
+    expect(screen.getByLabelText("학년 (필수)")).toHaveValue("3");
   });
 });

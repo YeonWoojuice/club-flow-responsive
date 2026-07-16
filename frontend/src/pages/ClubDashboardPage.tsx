@@ -20,6 +20,11 @@ export function ClubDashboardPage() {
       desc: "합격 처리된 부원 목록과 활동 이력을 확인합니다.",
       to: `/clubs/${clubId}/members`,
     },
+    {
+      label: "회비 관리",
+      desc: "학기별 회비 납부와 환불을 확인합니다.",
+      to: `/clubs/${clubId}/dues`,
+    },
   ];
 
   return (
@@ -37,7 +42,7 @@ export function ClubDashboardPage() {
         </Link>
       </header>
       <main className="p-4 md:p-8">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {sections.map(section => (
             <Link
               key={section.to}

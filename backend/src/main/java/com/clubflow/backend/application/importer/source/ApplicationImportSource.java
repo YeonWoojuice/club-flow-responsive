@@ -47,6 +47,9 @@ public class ApplicationImportSource {
     @Column(name = "student_number_header", nullable = false, length = 255)
     private String studentNumberHeader;
 
+    @Column(name = "grade_level_header", length = 255)
+    private String gradeLevelHeader;
+
     @Column(name = "phone_header", length = 255)
     private String phoneHeader;
 
@@ -92,6 +95,7 @@ public class ApplicationImportSource {
         this.nameHeader = values.nameHeader().trim();
         this.emailHeader = values.emailHeader().trim();
         this.studentNumberHeader = values.studentNumberHeader().trim();
+        this.gradeLevelHeader = normalize(values.gradeLevelHeader());
         this.phoneHeader = normalize(values.phoneHeader());
         this.submittedAtHeader = normalize(values.submittedAtHeader());
         this.discordNameHeader = normalize(values.discordNameHeader());
@@ -111,6 +115,7 @@ public class ApplicationImportSource {
     public String getNameHeader() { return nameHeader; }
     public String getEmailHeader() { return emailHeader; }
     public String getStudentNumberHeader() { return studentNumberHeader; }
+    public String getGradeLevelHeader() { return gradeLevelHeader; }
     public String getPhoneHeader() { return phoneHeader; }
     public String getSubmittedAtHeader() { return submittedAtHeader; }
     public String getDiscordNameHeader() { return discordNameHeader; }
@@ -126,6 +131,7 @@ public class ApplicationImportSource {
             String nameHeader,
             String emailHeader,
             String studentNumberHeader,
+            String gradeLevelHeader,
             String phoneHeader,
             String submittedAtHeader,
             String discordNameHeader,
@@ -144,7 +150,7 @@ public class ApplicationImportSource {
                 String headerFingerprint
         ) {
             this(displayName, spreadsheetId, sheetId, sheetTitle, nameHeader, emailHeader,
-                    studentNumberHeader, phoneHeader, submittedAtHeader, null, headerFingerprint);
+                    studentNumberHeader, null, phoneHeader, submittedAtHeader, null, headerFingerprint);
         }
     }
 }

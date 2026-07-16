@@ -46,11 +46,11 @@ describe("RetentionImportPage", () => {
     parseRetentionFile.mockResolvedValue({
       tables: [{
         name: "members.csv",
-        headers: ["이름", "이메일", "잔류 여부"],
+        headers: ["이름", "이메일", "학년", "잔류 여부"],
         rows: [
-          ["김잔류", "KEEP@example.com ", "예"],
-          ["중복1", "duplicate@example.com", "예"],
-          ["중복2", "DUPLICATE@example.com", "예"],
+          ["김잔류", "KEEP@example.com ", "2", "예"],
+          ["중복1", "duplicate@example.com", "1", "예"],
+          ["중복2", "DUPLICATE@example.com", "3", "예"],
         ],
       }],
     });
@@ -62,7 +62,7 @@ describe("RetentionImportPage", () => {
       invalidCount: 0,
       alreadyMemberCount: 0,
       rows: [
-        { rowNumber: 2, name: "김잔류", email: "keep@example.com", personId: "person-ready", status: "READY", message: "이월할 수 있습니다." },
+        { rowNumber: 2, name: "김잔류", email: "keep@example.com", gradeLevel: 2, personId: "person-ready", status: "READY", message: "이월할 수 있습니다." },
         { rowNumber: 3, name: "중복1", email: "duplicate@example.com", status: "DUPLICATE_IN_SOURCE", message: "같은 원본에 동일한 이메일이 여러 번 있습니다." },
         { rowNumber: 4, name: "중복2", email: "duplicate@example.com", status: "DUPLICATE_IN_SOURCE", message: "같은 원본에 동일한 이메일이 여러 번 있습니다." },
       ],
@@ -92,7 +92,8 @@ describe("RetentionImportPage", () => {
 
     await screen.findByText("3. 열 이름 연결 (열 매핑)");
     fireEvent.change(screen.getByLabelText("이메일 (필수)"), { target: { value: "1" } });
-    fireEvent.change(screen.getByLabelText("잔류 여부 (필수)"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("학년 (필수)"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("잔류 여부 (필수)"), { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("이름 (선택)"), { target: { value: "0" } });
     fireEvent.click(screen.getByRole("button", { name: "중복 확인하고 미리보기" }));
 
@@ -116,7 +117,7 @@ describe("RetentionImportPage", () => {
     expect(confirm).toHaveBeenCalledWith(expect.stringContaining("이월 제외 2명"));
 
     await waitFor(() => expect(applyRetention).toHaveBeenCalledWith(
-      "club-1", "previous-1", "target-1", ["person-ready"],
+      "club-1", "previous-1", "target-1", ["person-ready"], { "person-ready": 2 },
     ));
     expect(await screen.findByText(/1명을 새 학기 부원으로 이월했습니다/)).toBeInTheDocument();
   });
@@ -125,8 +126,8 @@ describe("RetentionImportPage", () => {
     parseRetentionFile.mockResolvedValueOnce({
       tables: [{
         name: "members.csv",
-        headers: ["이메일", "이름", "잔류 여부"],
-        rows: [["keep@example.com", "김잔류", "예"]],
+        headers: ["이메일", "이름", "학년", "잔류 여부"],
+        rows: [["keep@example.com", "김잔류", "2", "예"]],
       }],
     });
     renderPage();
@@ -136,7 +137,8 @@ describe("RetentionImportPage", () => {
     });
     await screen.findByText("3. 열 이름 연결 (열 매핑)");
     fireEvent.change(screen.getByLabelText("이메일 (필수)"), { target: { value: "0" } });
-    fireEvent.change(screen.getByLabelText("잔류 여부 (필수)"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("학년 (필수)"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("잔류 여부 (필수)"), { target: { value: "3" } });
     fireEvent.click(screen.getByRole("button", { name: "중복 확인하고 미리보기" }));
 
     await waitFor(() => expect(previewRetention).toHaveBeenCalledWith(
@@ -156,7 +158,8 @@ describe("RetentionImportPage", () => {
     });
     await screen.findByText("3. 열 이름 연결 (열 매핑)");
     fireEvent.change(screen.getByLabelText("이메일 (필수)"), { target: { value: "1" } });
-    fireEvent.change(screen.getByLabelText("잔류 여부 (필수)"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("학년 (필수)"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("잔류 여부 (필수)"), { target: { value: "3" } });
     fireEvent.click(screen.getByRole("button", { name: "중복 확인하고 미리보기" }));
     await screen.findByRole("button", { name: "이월 가능 1명 확정" });
 

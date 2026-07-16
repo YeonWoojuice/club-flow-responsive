@@ -84,6 +84,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/member-dues/{dueId}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recordRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/member-dues/{dueId}/refunds/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/member-dues/{dueId}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recordPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/member-dues/{dueId}/payments/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/generations/{generationId}/activate": {
         parameters: {
             query?: never;
@@ -196,6 +260,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/clubs/{clubId}/generations/{generationId}/dues/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createPolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/clubs/{clubId}/applications/manual": {
         parameters: {
             query?: never;
@@ -292,6 +372,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/member-dues/{dueId}/exemption": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["changeExemption"];
+        trace?: never;
+    };
     "/api/generation-members/{memberId}/status": {
         parameters: {
             query?: never;
@@ -380,6 +476,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listMine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/member-dues/{dueId}/refund-quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["refundQuote"];
         put?: never;
         post?: never;
         delete?: never;
@@ -508,6 +620,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["readGoogleSheet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clubs/{clubId}/generations/{generationId}/dues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["overview"];
         put?: never;
         post?: never;
         delete?: never;
@@ -715,6 +843,7 @@ export interface components {
             nameHeader: string;
             emailHeader: string;
             studentNumberHeader: string;
+            gradeLevelHeader: string;
             phoneHeader?: string;
             submittedAtHeader?: string;
         };
@@ -731,6 +860,7 @@ export interface components {
             nameHeader?: string;
             emailHeader?: string;
             studentNumberHeader?: string;
+            gradeLevelHeader?: string;
             phoneHeader?: string;
             submittedAtHeader?: string;
         };
@@ -790,6 +920,57 @@ export interface components {
         AcceptClubStaffInvitationCodeRequest: {
             code: string;
         };
+        RecordDuesRefundRequest: {
+            /** Format: uuid */
+            idempotencyKey: string;
+        };
+        DuesMemberRowResponse: {
+            /** Format: uuid */
+            memberDueId?: string;
+            /** Format: uuid */
+            generationMemberId?: string;
+            name?: string;
+            studentNumber?: string;
+            /** @enum {string} */
+            memberStatus?: "REGULAR" | "ASSOCIATE" | "INACTIVE" | "WITHDRAWN";
+            assessedAmount?: string;
+            paidAmount?: string;
+            refundedAmount?: string;
+            status?: string;
+            /** Format: date */
+            paidOn?: string;
+            legacyPayment?: boolean;
+        };
+        DuesOverviewResponse: {
+            /** Format: uuid */
+            policyId?: string;
+            amount?: string;
+            /** Format: date */
+            dueDate?: string;
+            refundRules?: components["schemas"]["DuesRefundRuleResponse"][];
+            totalAssessed?: string;
+            totalPaid?: string;
+            totalRefunded?: string;
+            /** Format: int32 */
+            unpaidCount?: number;
+            members?: components["schemas"]["DuesMemberRowResponse"][];
+        };
+        DuesRefundRuleResponse: {
+            label?: string;
+            /** Format: date */
+            endsOn?: string;
+            /** Format: int32 */
+            refundRateBps?: number;
+        };
+        CancelDuesRecordRequest: {
+            reason: string;
+        };
+        RecordDuesPaymentRequest: {
+            /** Format: date */
+            paidOn: string;
+            /** Format: uuid */
+            idempotencyKey: string;
+        };
         CreateClubRequest: {
             name: string;
             description?: string;
@@ -818,6 +999,8 @@ export interface components {
             name?: string;
             email?: string;
             studentNumber?: string;
+            /** Format: int32 */
+            gradeLevel?: number;
             retained: boolean;
         };
         RetentionPreviewRequest: {
@@ -848,6 +1031,8 @@ export interface components {
             name?: string;
             email?: string;
             studentNumber?: string;
+            /** Format: int32 */
+            gradeLevel?: number;
             /** Format: uuid */
             personId?: string;
             /** @enum {string} */
@@ -870,6 +1055,9 @@ export interface components {
             /** Format: uuid */
             targetGenerationId: string;
             personIds: string[];
+            gradeLevels?: {
+                [key: string]: number;
+            };
         };
         RetentionApplyResponse: {
             /** Format: int32 */
@@ -887,6 +1075,19 @@ export interface components {
             endDate: string;
             dateRangeValid?: boolean;
         };
+        CreateDuesPolicyRequest: {
+            amount: string;
+            /** Format: date */
+            dueDate?: string;
+            refundRules: components["schemas"]["RefundRuleRequest"][];
+        };
+        RefundRuleRequest: {
+            label: string;
+            /** Format: date */
+            endsOn: string;
+            /** Format: int32 */
+            refundRateBps?: number;
+        };
         ApplicationAnswerRequest: {
             questionKey: string;
             questionLabel: string;
@@ -900,6 +1101,8 @@ export interface components {
             email: string;
             phone?: string;
             studentNumber: string;
+            /** Format: int32 */
+            gradeLevel: number;
             applicationAnswers: components["schemas"]["ApplicationAnswerRequest"][];
         };
         ApplicationAnswerResponse: {
@@ -924,6 +1127,8 @@ export interface components {
             email?: string;
             phone?: string;
             studentNumber?: string;
+            /** Format: int32 */
+            gradeLevel?: number;
             /** @enum {string} */
             status?: "SUBMITTED" | "REVIEWING" | "ACCEPTED" | "REJECTED" | "CANCELED";
             /** @enum {string} */
@@ -937,7 +1142,7 @@ export interface components {
             /** Format: uuid */
             generationMemberId?: string;
             /** @enum {string} */
-            generationMemberStatus?: "ACTIVE" | "INACTIVE" | "WITHDRAWN";
+            generationMemberStatus?: "REGULAR" | "ASSOCIATE" | "INACTIVE" | "WITHDRAWN";
             statusHistory?: components["schemas"]["ApplicationStatusHistoryResponse"][];
             applicationAnswers?: components["schemas"]["ApplicationAnswerResponse"][];
         };
@@ -1039,6 +1244,8 @@ export interface components {
             email?: string;
             phone?: string;
             studentNumber?: string;
+            /** Format: int32 */
+            gradeLevel?: number;
             /** Format: date-time */
             submittedAt?: string;
             answers?: components["schemas"]["ApplicationImportAnswerRequest"][];
@@ -1063,6 +1270,8 @@ export interface components {
             email?: string;
             phone?: string;
             studentNumber?: string;
+            /** Format: int32 */
+            gradeLevel?: number;
             /** Format: date-time */
             submittedAt?: string;
             /** Format: uuid */
@@ -1079,9 +1288,13 @@ export interface components {
             /** Format: int32 */
             skippedCount?: number;
         };
+        ChangeDuesExemptionRequest: {
+            exempted: boolean;
+            reason?: string;
+        };
         ChangeGenerationMemberStatusRequest: {
             /** @enum {string} */
-            status: "ACTIVE" | "INACTIVE" | "WITHDRAWN";
+            status: "REGULAR" | "ASSOCIATE" | "INACTIVE" | "WITHDRAWN";
             reason?: string;
         };
         GenerationMemberResponse: {
@@ -1096,10 +1309,12 @@ export interface components {
             email?: string;
             phone?: string;
             studentNumber?: string;
+            /** Format: int32 */
+            gradeLevel?: number;
             /** @enum {string} */
             joinedSource?: "APPLICATION_ACCEPT" | "MANUAL" | "RETENTION";
             /** @enum {string} */
-            status?: "ACTIVE" | "INACTIVE" | "WITHDRAWN";
+            status?: "REGULAR" | "ASSOCIATE" | "INACTIVE" | "WITHDRAWN";
             /** @enum {string} */
             duesStatus?: "UNKNOWN" | "UNPAID" | "PAID" | "EXEMPT";
             kakaoInvited?: boolean;
@@ -1129,6 +1344,15 @@ export interface components {
             status: "SUBMITTED" | "REVIEWING" | "ACCEPTED" | "REJECTED" | "CANCELED";
             reason?: string;
         };
+        DuesRefundQuoteResponse: {
+            paidAmount?: string;
+            refundAmount?: string;
+            /** Format: int32 */
+            refundRateBps?: number;
+            ruleLabel?: string;
+            /** Format: date */
+            withdrawalDate?: string;
+        };
         GoogleConnectionStatusResponse: {
             connected?: boolean;
             googleAccountEmail?: string;
@@ -1140,9 +1364,9 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            previousStatus?: "ACTIVE" | "INACTIVE" | "WITHDRAWN";
+            previousStatus?: "REGULAR" | "ASSOCIATE" | "INACTIVE" | "WITHDRAWN";
             /** @enum {string} */
-            newStatus?: "ACTIVE" | "INACTIVE" | "WITHDRAWN";
+            newStatus?: "REGULAR" | "ASSOCIATE" | "INACTIVE" | "WITHDRAWN";
             reason?: string;
             /** Format: uuid */
             changedByUserId?: string;
@@ -1162,6 +1386,8 @@ export interface components {
             email?: string;
             phone?: string;
             studentNumber?: string;
+            /** Format: int32 */
+            gradeLevel?: number;
             /** @enum {string} */
             status?: "SUBMITTED" | "REVIEWING" | "ACCEPTED" | "REJECTED" | "CANCELED";
             /** @enum {string} */
@@ -1175,7 +1401,7 @@ export interface components {
             /** Format: uuid */
             generationMemberId?: string;
             /** @enum {string} */
-            generationMemberStatus?: "ACTIVE" | "INACTIVE" | "WITHDRAWN";
+            generationMemberStatus?: "REGULAR" | "ASSOCIATE" | "INACTIVE" | "WITHDRAWN";
         };
         ApplicationImportSourceTableResponse: {
             source?: components["schemas"]["ApplicationImportSourceResponse"];
@@ -1192,8 +1418,8 @@ export interface components {
         };
         CsrfToken: {
             headerName?: string;
-            token?: string;
             parameterName?: string;
+            token?: string;
         };
         CsrfTokenResponse: {
             headerName?: string;
@@ -1571,6 +1797,290 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ClubStaffInvitationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    recordRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordDuesRefundRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DuesOverviewResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    cancelRefund: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelDuesRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DuesOverviewResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    recordPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordDuesPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DuesOverviewResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    cancelPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelDuesRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DuesOverviewResponse"];
                 };
             };
             /** @description Bad Request */
@@ -2313,6 +2823,78 @@ export interface operations {
             };
         };
     };
+    createPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clubId: string;
+                generationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDuesPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DuesOverviewResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     createManual: {
         parameters: {
             query?: never;
@@ -2806,6 +3388,77 @@ export interface operations {
             };
         };
     };
+    changeExemption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeDuesExemptionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DuesOverviewResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     changeStatus: {
         parameters: {
             query?: never;
@@ -3178,6 +3831,73 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ClubStaffInvitationResponse"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    refundQuote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DuesRefundQuoteResponse"];
                 };
             };
             /** @description Bad Request */
@@ -3715,6 +4435,74 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ParsedWorkbookResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clubId: string;
+                generationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DuesOverviewResponse"];
                 };
             };
             /** @description Bad Request */

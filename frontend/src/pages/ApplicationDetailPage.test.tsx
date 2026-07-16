@@ -29,6 +29,7 @@ const accepted: ApplicationDetail = {
   email: "applicant@example.com",
   phone: null,
   studentNumber: "20260001",
+  gradeLevel: 2,
   status: "ACCEPTED",
   resultEmailStatus: "NOT_SENT",
   resultEmailSentAt: null,

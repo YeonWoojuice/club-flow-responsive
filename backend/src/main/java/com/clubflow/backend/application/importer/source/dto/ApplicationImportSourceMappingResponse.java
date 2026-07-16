@@ -4,6 +4,7 @@ public record ApplicationImportSourceMappingResponse(
         String nameHeader,
         String emailHeader,
         String studentNumberHeader,
+        String gradeLevelHeader,
         String phoneHeader,
         String submittedAtHeader
 ) {

@@ -16,10 +16,23 @@ public record ApplicationImportSourceMappingRequest(
         @Size(max = 255, message = "학번 열 제목은 255자 이하여야 합니다.")
         String studentNumberHeader,
 
+        @NotBlank(message = "학년 열을 선택해 주세요.")
+        @Size(max = 255, message = "학년 열 제목은 255자 이하여야 합니다.")
+        String gradeLevelHeader,
+
         @Size(max = 255, message = "전화번호 열 제목은 255자 이하여야 합니다.")
         String phoneHeader,
 
         @Size(max = 255, message = "제출일시 열 제목은 255자 이하여야 합니다.")
         String submittedAtHeader
 ) {
+    public ApplicationImportSourceMappingRequest(
+            String nameHeader,
+            String emailHeader,
+            String studentNumberHeader,
+            String phoneHeader,
+            String submittedAtHeader
+    ) {
+        this(nameHeader, emailHeader, studentNumberHeader, "학년", phoneHeader, submittedAtHeader);
+    }
 }

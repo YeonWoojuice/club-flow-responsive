@@ -26,6 +26,7 @@ const activeMember: GenerationMember = {
   email: "member@example.com",
   phone: "010-1111-2222",
   studentNumber: "20260001",
+  gradeLevel: 2,
   joinedSource: "APPLICATION_ACCEPT",
   status: "REGULAR",
   duesStatus: "PAID",

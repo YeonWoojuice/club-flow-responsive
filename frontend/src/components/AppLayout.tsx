@@ -126,6 +126,7 @@ export function AppLayout({ clubId, children }: AppLayoutProps) {
     { label: "학기/기수", to: `/clubs/${clubId}/generations` },
     { label: "지원자 관리", to: `/clubs/${clubId}/applications` },
     { label: "부원 관리", to: `/clubs/${clubId}/members`, exact: true },
+    { label: "회비 관리", to: `/clubs/${clubId}/dues`, exact: true },
     { label: "잔류 부원 이월", to: `/clubs/${clubId}/members/retention` },
     ...(club?.role === "PRESIDENT"
       ? [{ label: "운영진 관리", to: `/clubs/${clubId}/staff` }]

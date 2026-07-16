@@ -43,28 +43,29 @@ final class ApplicationImportRowEvaluator {
         String email = normalizeEmail(row.email());
         String phone = normalizeNullable(row.phone());
         String studentNumber = normalizeNullable(row.studentNumber());
+        Integer gradeLevel = row.gradeLevel();
         Person person = email == null ? null : peopleByEmail.get(email);
 
         if (email == null || email.length() > 255 || !EMAIL_PATTERN.matcher(email).matches()) {
-            return result(row, name, email, phone, studentNumber, person,
+            return result(row, name, email, phone, studentNumber, gradeLevel, person,
                     ApplicationImportRowStatus.INVALID, "이메일을 확인해 주세요.");
         }
         if (emailCounts.getOrDefault(email, 0L) > 1) {
-            return result(row, name, email, phone, studentNumber, person,
+            return result(row, name, email, phone, studentNumber, gradeLevel, person,
                     ApplicationImportRowStatus.DUPLICATE_IN_SOURCE,
                     "같은 원본에 동일한 이메일이 여러 번 있습니다.");
         }
-        String validationMessage = validateFields(row, name, phone, studentNumber);
+        String validationMessage = validateFields(row, name, phone, studentNumber, gradeLevel);
         if (validationMessage != null) {
-            return result(row, name, email, phone, studentNumber, person,
+            return result(row, name, email, phone, studentNumber, gradeLevel, person,
                     ApplicationImportRowStatus.INVALID, validationMessage);
         }
         if (person != null && appliedPersonIds.contains(person.getId())) {
-            return result(row, name, email, phone, studentNumber, person,
+            return result(row, name, email, phone, studentNumber, gradeLevel, person,
                     ApplicationImportRowStatus.ALREADY_APPLIED,
                     "같은 학기에 이미 등록된 지원자입니다.");
         }
-        return result(row, name, email, phone, studentNumber, person,
+        return result(row, name, email, phone, studentNumber, gradeLevel, person,
                 ApplicationImportRowStatus.READY, "가져올 수 있습니다.");
     }
 
@@ -72,12 +73,14 @@ final class ApplicationImportRowEvaluator {
             ApplicationImportRowRequest row,
             String name,
             String phone,
-            String studentNumber
+            String studentNumber,
+            Integer gradeLevel
     ) {
         if (row.rowNumber() == null || row.rowNumber() < 2) return "원본 행 번호를 확인해 주세요.";
         if (name == null || name.length() > 100) return "이름을 확인해 주세요.";
         if (phone != null && phone.length() > 30) return "연락처는 30자 이하여야 합니다.";
         if (studentNumber == null || studentNumber.length() > 50) return "학번을 확인해 주세요.";
+        if (gradeLevel == null || gradeLevel < 1 || gradeLevel > 20) return "학년은 1~20 사이로 입력해 주세요.";
         if (row.answers() == null || row.answers().isEmpty()) return null;
 
         Set<String> questionKeys = new HashSet<>();
@@ -99,15 +102,16 @@ final class ApplicationImportRowEvaluator {
             String email,
             String phone,
             String studentNumber,
+            Integer gradeLevel,
             Person person,
             ApplicationImportRowStatus status,
             String message
     ) {
         ApplicationImportPreviewRowResponse response = new ApplicationImportPreviewRowResponse(
-                source.rowNumber(), name, email, phone, studentNumber, source.submittedAt(),
+                source.rowNumber(), name, email, phone, studentNumber, gradeLevel, source.submittedAt(),
                 person == null ? null : person.getId(), status, message
         );
-        return new EvaluatedRow(source, name, email, phone, studentNumber, person, status, response);
+        return new EvaluatedRow(source, name, email, phone, studentNumber, gradeLevel, person, status, response);
     }
 
     private String normalizeEmail(String value) {
@@ -124,6 +128,7 @@ final class ApplicationImportRowEvaluator {
             String email,
             String phone,
             String studentNumber,
+            Integer gradeLevel,
             Person person,
             ApplicationImportRowStatus status,
             ApplicationImportPreviewRowResponse response

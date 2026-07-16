@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
-  changeGenerationMemberDuesStatus,
   changeGenerationMemberInvitationStatus,
   listMembers,
 } from "../api/members";
@@ -52,7 +51,7 @@ const invitationFilterLabel = {
   COMPLETE: "초대 완료",
 } as const;
 
-const memberGridGeometry = "grid-cols-2 gap-x-3 gap-y-2 px-3 lg:min-w-[1220px] lg:grid-cols-[minmax(90px,0.75fr)_95px_110px_minmax(170px,1.35fr)_72px_58px_92px_minmax(130px,1fr)_minmax(150px,1.1fr)] lg:px-4";
+const memberGridGeometry = "grid-cols-2 gap-x-3 gap-y-2 px-3 lg:min-w-[1280px] lg:grid-cols-[minmax(90px,0.75fr)_88px_58px_110px_minmax(170px,1.35fr)_72px_58px_92px_100px_minmax(150px,1.1fr)] lg:px-4";
 
 function StatusBadge({ status }: { status: GenerationMemberStatus }) {
   if (status === "REGULAR") {
@@ -96,25 +95,11 @@ function isInteractiveTarget(target: EventTarget | null) {
 
 function MemberRow({ member, onUpdated, onOpen }: MemberRowProps) {
   const openButtonRef = useRef<HTMLButtonElement>(null);
-  const [duesSubmitting, setDuesSubmitting] = useState(false);
-  const [duesError, setDuesError] = useState("");
   const [invitationSubmitting, setInvitationSubmitting] = useState(false);
   const [invitationError, setInvitationError] = useState("");
   const duesUpdatedDescription = member.duesStatusUpdatedByName && member.duesStatusUpdatedAt
     ? `${member.duesStatusUpdatedByName} · ${new Date(member.duesStatusUpdatedAt).toLocaleString("ko-KR")}`
     : null;
-
-  async function handleDuesStatusChange(duesStatus: GenerationMemberDuesStatus) {
-    setDuesSubmitting(true);
-    setDuesError("");
-    try {
-      onUpdated(await changeGenerationMemberDuesStatus(member.id, duesStatus));
-    } catch (requestError) {
-      setDuesError(apiErrorMessage(requestError, "회비 상태를 변경하지 못했습니다."));
-    } finally {
-      setDuesSubmitting(false);
-    }
-  }
 
   async function handleInvitationStatusChange(
     field: "kakaoInvited" | "discordInvited",
@@ -161,6 +146,12 @@ function MemberRow({ member, onUpdated, onOpen }: MemberRowProps) {
           <span className="text-xs text-[var(--text-secondary)]">{member.studentNumber}</span>
         </div>
         <div>
+          <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">학년</span>
+          <span className="text-xs font-bold text-[var(--text-secondary)]">
+            {member.gradeLevel == null ? "미입력" : `${member.gradeLevel}학년`}
+          </span>
+        </div>
+        <div>
           <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">전화번호</span>
           <span className="text-xs text-[var(--text-secondary)]">{member.phone ?? "-"}</span>
         </div>
@@ -181,26 +172,14 @@ function MemberRow({ member, onUpdated, onOpen }: MemberRowProps) {
         </div>
         <div className="min-w-0">
           <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">회비 확인</span>
-          <label className="grid min-w-24 gap-1 text-[10px] font-bold text-[var(--text-secondary)]">
-            <span className="sr-only">{member.name} 회비 상태</span>
-            <select
-              aria-label={`${member.name} 회비 상태`}
-              value={member.duesStatus}
-              disabled={duesSubmitting}
-              onChange={event => void handleDuesStatusChange(event.target.value as GenerationMemberDuesStatus)}
-              className="rounded-lg border border-[var(--border-subtle)] bg-white px-2 py-1.5 text-xs font-bold text-[var(--text-primary)] disabled:opacity-50"
-            >
-              {Object.entries(duesStatusLabel).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </label>
+          <span className="inline-flex rounded-md bg-[var(--panel-muted)] px-2 py-1 text-[11px] font-bold text-[var(--text-secondary)]">
+            {duesStatusLabel[member.duesStatus]}
+          </span>
           {duesUpdatedDescription && (
             <p title={duesUpdatedDescription} className="mt-1 truncate whitespace-nowrap text-[10px] text-[var(--text-secondary)]">
               {duesUpdatedDescription}
             </p>
           )}
-          {duesError && <p role="alert" className="mt-1 text-[10px] font-bold text-[var(--danger)]">{duesError}</p>}
         </div>
         <div className="min-w-0">
           <span className="mb-0.5 block text-[10px] font-bold text-[var(--text-secondary)] lg:hidden">초대 확인</span>
@@ -235,10 +214,10 @@ function MemberRow({ member, onUpdated, onOpen }: MemberRowProps) {
   );
 }
 
-type MemberFilterKey = "studentNumber" | "status" | "dues" | "invitation";
+type MemberFilterKey = "studentNumber" | "status" | "invitation";
 type MemberStatusFilter = GenerationMemberStatus | "ALL";
-type MemberDuesFilter = GenerationMemberDuesStatus | "ALL";
 type MemberInvitationFilter = keyof typeof invitationFilterLabel;
+type MemberSort = "DEFAULT" | "NAME_ASC" | "STUDENT_NUMBER_ASC" | "STATUS";
 
 type FilterHeaderProps = {
   label: string;
@@ -282,8 +261,8 @@ export function MemberListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [studentNumberFilter, setStudentNumberFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<MemberStatusFilter>("ALL");
-  const [duesFilter, setDuesFilter] = useState<MemberDuesFilter>("ALL");
   const [invitationFilter, setInvitationFilter] = useState<MemberInvitationFilter>("ALL");
+  const [sortBy, setSortBy] = useState<MemberSort>("DEFAULT");
   const [openFilter, setOpenFilter] = useState<MemberFilterKey | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const memberDetailReturnFocusRef = useRef<HTMLElement | null>(null);
@@ -372,8 +351,8 @@ export function MemberListPage() {
     setSearchQuery("");
     setStudentNumberFilter("");
     setStatusFilter("ALL");
-    setDuesFilter("ALL");
     setInvitationFilter("ALL");
+    setSortBy("DEFAULT");
     setOpenFilter(null);
     setSearchParams(current => {
       const next = new URLSearchParams(current);
@@ -408,27 +387,43 @@ export function MemberListPage() {
       }
       if (normalizedStudentNumber && !member.studentNumber.includes(normalizedStudentNumber)) return false;
       if (statusFilter !== "ALL" && member.status !== statusFilter) return false;
-      if (duesFilter !== "ALL" && member.duesStatus !== duesFilter) return false;
       if (invitationFilter === "KAKAO_PENDING" && member.kakaoInvited) return false;
       if (invitationFilter === "DISCORD_PENDING" && member.discordInvited) return false;
       if (invitationFilter === "BOTH_PENDING" && (member.kakaoInvited || member.discordInvited)) return false;
       if (invitationFilter === "COMPLETE" && (!member.kakaoInvited || !member.discordInvited)) return false;
       return true;
     })
-    .sort((left, right) => statusSortOrder[left.status] - statusSortOrder[right.status]);
+    .sort((left, right) => {
+      const activityGroup = (status: GenerationMemberStatus) => {
+        if (status === "INACTIVE") return 1;
+        if (status === "WITHDRAWN") return 2;
+        return 0;
+      };
+      const groupDifference = activityGroup(left.status) - activityGroup(right.status);
+      if (groupDifference !== 0) return groupDifference;
+      if (sortBy === "NAME_ASC") return left.name.localeCompare(right.name, "ko");
+      if (sortBy === "STUDENT_NUMBER_ASC") {
+        return left.studentNumber.localeCompare(right.studentNumber, "ko", { numeric: true });
+      }
+      if (sortBy === "STATUS") {
+        const statusDifference = statusSortOrder[left.status] - statusSortOrder[right.status];
+        if (statusDifference !== 0) return statusDifference;
+      }
+      const leftGrade = left.gradeLevel ?? Number.MAX_SAFE_INTEGER;
+      const rightGrade = right.gradeLevel ?? Number.MAX_SAFE_INTEGER;
+      return leftGrade - rightGrade || left.name.localeCompare(right.name, "ko");
+    });
   const kakaoPendingCount = members.filter(member => !member.kakaoInvited).length;
   const discordPendingCount = members.filter(member => !member.discordInvited).length;
   const filterApplied = normalizedSearchQuery !== ""
     || normalizedStudentNumber !== ""
     || statusFilter !== "ALL"
-    || duesFilter !== "ALL"
     || invitationFilter !== "ALL";
 
   function resetFilters() {
     setSearchQuery("");
     setStudentNumberFilter("");
     setStatusFilter("ALL");
-    setDuesFilter("ALL");
     setInvitationFilter("ALL");
     setOpenFilter(null);
   }
@@ -442,7 +437,7 @@ export function MemberListPage() {
 
       <div className="px-4 py-6 md:px-8">
         <div className="mb-5 flex flex-col gap-3 rounded-xl border border-[var(--border-subtle)] bg-white p-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="grid flex-1 gap-3 sm:grid-cols-2">
+          <div className="grid flex-1 gap-3 sm:grid-cols-3">
             <label className="grid gap-1.5 text-xs font-bold text-[var(--text-primary)]">
               조회할 학기
               <select
@@ -469,8 +464,17 @@ export function MemberListPage() {
                 placeholder="이름, 학번, 이메일, 전화번호"
               />
             </label>
+            <label className="grid gap-1.5 text-xs font-bold text-[var(--text-primary)]">
+              정렬 기준
+              <select className="control" value={sortBy} onChange={event => setSortBy(event.target.value as MemberSort)}>
+                <option value="DEFAULT">탈퇴/활동 여부 → 학년순 → 이름 가나다순 (기본)</option>
+                <option value="NAME_ASC">이름 가나다순</option>
+                <option value="STUDENT_NUMBER_ASC">학번순</option>
+                <option value="STATUS">회원 상태순</option>
+              </select>
+            </label>
           </div>
-          <p className="text-xs text-[var(--text-secondary)]">선택한 학기의 부원과 회비 확인 상태만 표시합니다.</p>
+          <p className="text-xs text-[var(--text-secondary)]">회비 상태는 회비 관리에서만 변경할 수 있습니다.</p>
         </div>
 
         {members.length > 0 && (
@@ -484,13 +488,6 @@ export function MemberListPage() {
               <select className="control" value={statusFilter} onChange={event => setStatusFilter(event.target.value as MemberStatusFilter)}>
                 <option value="ALL">전체 상태</option>
                 {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </label>
-            <label className="grid gap-1.5 text-xs font-bold">
-              회비 필터
-              <select className="control" value={duesFilter} onChange={event => setDuesFilter(event.target.value as MemberDuesFilter)}>
-                <option value="ALL">전체 회비 상태</option>
-                {Object.entries(duesStatusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </label>
             <label className="grid gap-1.5 text-xs font-bold">
@@ -548,6 +545,7 @@ export function MemberListPage() {
                   <input autoFocus aria-label="표 학번 필터" className="control" value={studentNumberFilter} onChange={event => setStudentNumberFilter(event.target.value)} placeholder="학번 입력" />
                 </label>
               </FilterHeader>
+              <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">학년</span>
               <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">전화번호</span>
               <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">이메일</span>
               <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">학기</span>
@@ -561,15 +559,7 @@ export function MemberListPage() {
                   </select>
                 </label>
               </FilterHeader>
-              <FilterHeader label="회비 확인" applied={duesFilter !== "ALL"} open={openFilter === "dues"} onToggle={() => setOpenFilter(current => current === "dues" ? null : "dues")}>
-                <label className="grid gap-1.5 text-xs font-bold text-[var(--text-primary)]">
-                  회비 여부
-                  <select autoFocus aria-label="표 회비 필터" className="control" value={duesFilter} onChange={event => setDuesFilter(event.target.value as MemberDuesFilter)}>
-                    <option value="ALL">전체 회비 상태</option>
-                    {Object.entries(duesStatusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                  </select>
-                </label>
-              </FilterHeader>
+              <span className="py-3 text-xs font-extrabold text-[var(--text-secondary)]">회비 확인</span>
               <FilterHeader label="초대 확인" applied={invitationFilter !== "ALL"} open={openFilter === "invitation"} onToggle={() => setOpenFilter(current => current === "invitation" ? null : "invitation")}>
                 <label className="grid gap-1.5 text-xs font-bold text-[var(--text-primary)]">
                   초대 여부

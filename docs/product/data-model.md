@@ -148,10 +148,12 @@ generations 1 ── N applications N ── 1 persons
 | person_id | UUID | FK → persons.id |
 | status | VARCHAR(20) | SUBMITTED, REVIEWING, ACCEPTED, REJECTED, CANCELED |
 | source_type | VARCHAR(20) | MANUAL, GOOGLE_FORM |
+| grade_level | SMALLINT | 지원 당시 학년, 1~20, 기존 기록은 NULL 허용 |
 | submitted_at | TIMESTAMPTZ | NOT NULL |
 | created_at | TIMESTAMPTZ | NOT NULL |
 | updated_at | TIMESTAMPTZ | NOT NULL |
 
+- `grade_level`은 지원 시점의 학년을 보존하고 합격 부원 생성 시 `generation_members`로 복사한다.
 - `UNIQUE(generation_id, person_id)`로 같은 학기의 중복 지원을 방지한다.
 - `ACCEPTED`, `REJECTED`는 현재 결과의 메일이 `NOT_SENT` 또는 `FAILED`일 때만 서로 정정할 수 있다.
 - `CANCELED`은 최종 상태이며 다시 변경하지 않는다.
@@ -230,6 +232,7 @@ generations 1 ── N applications N ── 1 persons
 | person_id | UUID | FK → persons.id |
 | joined_source | VARCHAR(30) | APPLICATION_ACCEPT, MANUAL, RETENTION |
 | status | VARCHAR(20) | REGULAR, ASSOCIATE, INACTIVE, WITHDRAWN |
+| grade_level | SMALLINT | 학기 당시 학년, 1~20, 기존 기록은 NULL 허용 |
 | dues_status | VARCHAR(20) | UNKNOWN, UNPAID, PAID, EXEMPT |
 | kakao_invited | BOOLEAN | NOT NULL, 기본값 FALSE |
 | discord_invited | BOOLEAN | NOT NULL, 기본값 FALSE |
@@ -241,8 +244,8 @@ generations 1 ── N applications N ── 1 persons
 - `UNIQUE(generation_id, person_id)`로 같은 학기의 중복 부원을 방지한다.
 - 합격 결과 메일이 `SENT`로 기록될 때 `APPLICATION_ACCEPT/REGULAR`로 생성한다.
 - 이전 학기 부원을 이월하면 `RETENTION/REGULAR`로 생성한다.
-- 기존·신규 부원의 회비 상태는 `UNKNOWN`으로 시작하고 회계 담당 운영진이 직접 확인한다.
-- 회비 상태는 납부 금액이나 회계 거래가 아니라 해당 학기의 확인 결과만 나타낸다.
+- `grade_level`은 해마다 달라질 수 있으므로 `persons`가 아니라 학기별 `generation_members`에 저장한다.
+- 부원 목록의 `dues_status`는 과거 호환용 읽기 값이며 실제 납부·면제·환불 변경은 회비 관리 기록으로 처리한다.
 - 동아리는 generation을 통해 판별하므로 중복 `club_id`를 저장하지 않는다.
 
 ## generation_member_status_histories
@@ -264,6 +267,17 @@ generations 1 ── N applications N ── 1 persons
 - `REGULAR`과 `ASSOCIATE`는 서로 변경할 수 있고 두 상태 모두 `INACTIVE`로 변경할 수 있다.
 - `WITHDRAWN`으로 변경하려면 먼저 `INACTIVE`로 변경해야 한다.
 
+## 회비 관리
+
+- `generation_dues_policies`: 학기별 회비 금액과 납부 기한. 학기당 한 건이다.
+- `generation_dues_refund_rules`: 기준일(포함), 환불 비율, 적용 순서를 저장한다.
+- `member_dues`: 회비 설정 당시 부원별 부과 금액을 고정해서 저장한다.
+- `dues_payments`: 실제 또는 기존 상태 이관 납부 기록과 중복 방지 키를 저장한다.
+- `dues_refunds`: 탈퇴일, 적용 비율, 규칙 이름, 버림 계산된 최종 환불액을 저장한다.
+
+개별 금액은 `NUMERIC(19,0)`으로 저장하고 학기 합계는 유효한 거래를 `SUM(NUMERIC)`으로 계산한다.
+금액은 음수로 정정하지 않고 취소 기록과 새 거래로 정정할 수 있도록 테이블을 구성한다.
+
 ## application_import_sources
 
 | 컬럼 | 설명 |
@@ -273,7 +287,7 @@ generations 1 ── N applications N ── 1 persons
 | spreadsheet_id | Google Sheet 문서 ID |
 | sheet_id | 이름이 바뀌어도 유지되는 Google 탭 ID |
 | sheet_title | 저장 당시 탭 이름 |
-| name/email/student_number_header | 필수 열 연결 |
+| name/email/student_number/grade_level_header | 필수 열 연결 |
 | phone/submitted_at_header | 선택 열 연결 |
 | header_fingerprint | 저장 당시 열 구조의 지문 |
 

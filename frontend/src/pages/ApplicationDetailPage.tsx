@@ -101,6 +101,7 @@ export function ApplicationDetailPage() {
                   [
                     ["이름", application.name],
                     ["학번", application.studentNumber],
+                    ["학년", application.gradeLevel == null ? "미입력" : `${application.gradeLevel}학년`],
                     ["이메일", application.email],
                     ["연락처", application.phone ?? "-"],
                     ["등록 방식", application.sourceType === "MANUAL" ? "수동 등록" : "Google Form"],

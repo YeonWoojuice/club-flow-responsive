@@ -58,6 +58,7 @@ class ApplicationResultEmailPersistenceServiceTest {
         when(application.getId()).thenReturn(applicationId);
         when(application.getGeneration()).thenReturn(generation);
         when(application.getPerson()).thenReturn(person);
+        when(application.getGradeLevel()).thenReturn(2);
         when(person.getName()).thenReturn("김지원");
         when(fixture.applicationRepository.findAllByGenerationIdAndStatusForUpdate(
                 generationId, ApplicationStatus.ACCEPTED
@@ -97,10 +98,11 @@ class ApplicationResultEmailPersistenceServiceTest {
         when(message.getApplication()).thenReturn(application);
         when(application.getGeneration()).thenReturn(generation);
         when(application.getPerson()).thenReturn(person);
+        when(application.getGradeLevel()).thenReturn(2);
 
         fixture.service.complete(batchId, List.of(EmailSendResult.sent(messageId, "provider-id")));
 
-        verify(fixture.generationMemberService).ensureAcceptedMember(generation, person);
+        verify(fixture.generationMemberService).ensureAcceptedMember(generation, person, 2);
     }
 
     @Test
@@ -119,7 +121,9 @@ class ApplicationResultEmailPersistenceServiceTest {
         fixture.service.complete(batchId, List.of(EmailSendResult.sent(messageId, "provider-id")));
 
         verify(fixture.generationMemberService, never()).ensureAcceptedMember(
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()
         );
     }
 

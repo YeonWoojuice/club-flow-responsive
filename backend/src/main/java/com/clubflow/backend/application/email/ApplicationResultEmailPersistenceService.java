@@ -109,7 +109,8 @@ class ApplicationResultEmailPersistenceService {
                     && batch.getDecision() == ApplicationStatus.ACCEPTED) {
                 generationMemberService.ensureAcceptedMember(
                         message.getApplication().getGeneration(),
-                        message.getApplication().getPerson()
+                        message.getApplication().getPerson(),
+                        message.getApplication().getGradeLevel()
                 );
             }
         }

@@ -264,6 +264,7 @@ export function MemberDetailModal({ member, returnFocusRef, onClose, onUpdated }
             <InfoSection title="기본 정보">
               <InfoRow label="이름" value={member.name} />
               <InfoRow label="학번" value={member.studentNumber} />
+              <InfoRow label="학년" value={member.gradeLevel == null ? "미입력" : `${member.gradeLevel}학년`} />
               <InfoRow label="전화번호" value={member.phone ?? "-"} />
               <InfoRow label="이메일" value={member.email} breakAll />
               <InfoRow label="학기" value={member.generationName} />

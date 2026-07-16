@@ -112,7 +112,8 @@ public class ApplicationService {
             throw new ConflictException("같은 학기에 이미 등록된 지원자가 있습니다.");
         }
 
-        Application application = applicationRepository.save(Application.createManual(generation, person));
+        Application application = applicationRepository.save(
+                Application.createManual(generation, person, request.gradeLevel()));
         List<ApplicationAnswer> answers = createAnswers(application, request.applicationAnswers());
         applicationAnswerRepository.saveAll(answers);
         ApplicationResultEmailQueryService.ResultEmailState state = resultEmailQueryService.latestStates(

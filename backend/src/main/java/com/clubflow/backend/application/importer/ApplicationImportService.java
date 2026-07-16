@@ -91,7 +91,8 @@ public class ApplicationImportService {
                     person,
                     row.source().submittedAt() == null
                             ? java.time.Instant.now()
-                            : row.source().submittedAt()
+                            : row.source().submittedAt(),
+                    row.gradeLevel()
             ));
             if (row.source().answers() != null && !row.source().answers().isEmpty()) {
                 applicationAnswerRepository.saveAll(createAnswers(application, row.source().answers()));

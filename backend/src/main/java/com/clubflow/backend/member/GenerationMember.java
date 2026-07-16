@@ -43,6 +43,9 @@ public class GenerationMember {
     @Column(nullable = false, length = 20)
     private GenerationMemberStatus status;
 
+    @Column(name = "grade_level")
+    private Short gradeLevel;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "dues_status", nullable = false, length = 20)
     private GenerationMemberDuesStatus duesStatus;
@@ -73,13 +76,15 @@ public class GenerationMember {
             Generation generation,
             Person person,
             MemberJoinedSource joinedSource,
-            GenerationMemberStatus status
+            GenerationMemberStatus status,
+            Integer gradeLevel
     ) {
         Instant now = Instant.now();
         this.generation = generation;
         this.person = person;
         this.joinedSource = joinedSource;
         this.status = status;
+        this.gradeLevel = normalizeGradeLevel(gradeLevel);
         this.duesStatus = GenerationMemberDuesStatus.UNKNOWN;
         this.kakaoInvited = false;
         this.discordInvited = false;
@@ -88,20 +93,38 @@ public class GenerationMember {
     }
 
     public static GenerationMember createFromAcceptedApplication(Generation generation, Person person) {
+        return createFromAcceptedApplication(generation, person, null);
+    }
+
+    public static GenerationMember createFromAcceptedApplication(
+            Generation generation,
+            Person person,
+            Integer gradeLevel
+    ) {
         return new GenerationMember(
                 generation,
                 person,
                 MemberJoinedSource.APPLICATION_ACCEPT,
-                GenerationMemberStatus.REGULAR
+                GenerationMemberStatus.REGULAR,
+                gradeLevel
         );
     }
 
     public static GenerationMember createFromRetention(Generation generation, Person person) {
+        return createFromRetention(generation, person, null);
+    }
+
+    public static GenerationMember createFromRetention(
+            Generation generation,
+            Person person,
+            Integer gradeLevel
+    ) {
         return new GenerationMember(
                 generation,
                 person,
                 MemberJoinedSource.RETENTION,
-                GenerationMemberStatus.REGULAR
+                GenerationMemberStatus.REGULAR,
+                gradeLevel
         );
     }
 
@@ -160,6 +183,18 @@ public class GenerationMember {
 
     public GenerationMemberStatus getStatus() {
         return status;
+    }
+
+    public Integer getGradeLevel() {
+        return gradeLevel == null ? null : gradeLevel.intValue();
+    }
+
+    private static Short normalizeGradeLevel(Integer gradeLevel) {
+        if (gradeLevel == null) return null;
+        if (gradeLevel < 1 || gradeLevel > 20) {
+            throw new IllegalArgumentException("학년은 1~20 사이여야 합니다.");
+        }
+        return gradeLevel.shortValue();
     }
 
     public GenerationMemberDuesStatus getDuesStatus() {

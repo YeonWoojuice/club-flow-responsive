@@ -14,7 +14,7 @@ export type RetentionImportRowInput = Schemas["RetentionImportRowRequest"];
 
 export type RetentionPreviewRow = Required<
   Pick<PreviewRowSchema, "rowNumber" | "status" | "message">
-> & Pick<PreviewRowSchema, "name" | "email" | "studentNumber" | "personId">;
+> & Pick<PreviewRowSchema, "name" | "email" | "studentNumber" | "gradeLevel" | "personId">;
 
 type PreviewSchema = Schemas["RetentionPreviewResponse"];
 export type RetentionPreview = Required<Omit<PreviewSchema, "rows">> & {

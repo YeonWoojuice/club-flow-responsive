@@ -2,7 +2,9 @@ package com.clubflow.backend.member.retention;
 
 import com.clubflow.backend.club.ClubAccessService;
 import com.clubflow.backend.common.ConflictException;
+import com.clubflow.backend.common.InvalidRequestException;
 import com.clubflow.backend.common.NotFoundException;
+import com.clubflow.backend.dues.DuesService;
 import com.clubflow.backend.generation.Generation;
 import com.clubflow.backend.generation.GenerationService;
 import com.clubflow.backend.generation.GenerationStatus;
@@ -37,15 +39,18 @@ public class RetentionImportService {
     private final GenerationMemberRepository generationMemberRepository;
     private final ClubAccessService clubAccessService;
     private final GenerationService generationService;
+    private final DuesService duesService;
 
     public RetentionImportService(
             GenerationMemberRepository generationMemberRepository,
             ClubAccessService clubAccessService,
-            GenerationService generationService
+            GenerationService generationService,
+            DuesService duesService
     ) {
         this.generationMemberRepository = generationMemberRepository;
         this.clubAccessService = clubAccessService;
         this.generationService = generationService;
+        this.duesService = duesService;
     }
 
     public void requireClubAccess(String googleSub, UUID clubId) {
@@ -82,6 +87,7 @@ public class RetentionImportService {
                 clubId, request.previousGenerationId(), request.targetGenerationId(), true
         );
         Map<UUID, Person> previousMembersById = membersById(generations.previous().getId());
+        Map<UUID, Integer> previousGradeLevels = gradeLevelsByPersonId(generations.previous().getId());
         Set<UUID> targetMemberIds = memberIds(generations.target().getId());
         LinkedHashSet<UUID> requestedIds = new LinkedHashSet<>(request.personIds());
 
@@ -96,7 +102,15 @@ public class RetentionImportService {
                 alreadyMemberCount++;
                 continue;
             }
-            generationMemberRepository.save(GenerationMember.createFromRetention(generations.target(), person));
+            Integer gradeLevel = request.gradeLevels() == null
+                    ? previousGradeLevels.get(personId)
+                    : request.gradeLevels().getOrDefault(personId, previousGradeLevels.get(personId));
+            if (gradeLevel != null && (gradeLevel < 1 || gradeLevel > 20)) {
+                throw new InvalidRequestException("학년은 1~20 사이로 입력해 주세요.");
+            }
+            GenerationMember member = generationMemberRepository.save(
+                    GenerationMember.createFromRetention(generations.target(), person, gradeLevel));
+            duesService.createAssessmentIfPolicyExists(member);
             targetMemberIds.add(personId);
             createdCount++;
         }
@@ -134,28 +148,33 @@ public class RetentionImportService {
         String email = normalizeEmail(row.email());
         String name = normalizeNullable(row.name());
         String studentNumber = normalizeNullable(row.studentNumber());
+        Integer gradeLevel = row.gradeLevel();
         if (email == null || !EMAIL_PATTERN.matcher(email).matches()) {
-            return result(row, name, email, studentNumber, null, RetentionRowStatus.INVALID,
+            return result(row, name, email, studentNumber, gradeLevel, null, RetentionRowStatus.INVALID,
                     "이메일을 확인해 주세요.");
         }
         if (!Boolean.TRUE.equals(row.retained())) {
-            return result(row, name, email, studentNumber, null, RetentionRowStatus.NOT_RETAINED,
+            return result(row, name, email, studentNumber, gradeLevel, null, RetentionRowStatus.NOT_RETAINED,
                     "잔류하지 않는 응답입니다.");
         }
+        if (gradeLevel == null || gradeLevel < 1 || gradeLevel > 20) {
+            return result(row, name, email, studentNumber, gradeLevel, null, RetentionRowStatus.INVALID,
+                    "학년은 1~20 사이로 입력해 주세요.");
+        }
         if (emailCounts.getOrDefault(email, 0) > 1) {
-            return result(row, name, email, studentNumber, null, RetentionRowStatus.DUPLICATE_IN_SOURCE,
+            return result(row, name, email, studentNumber, gradeLevel, null, RetentionRowStatus.DUPLICATE_IN_SOURCE,
                     "같은 원본에 동일한 이메일이 여러 번 있습니다.");
         }
         Person person = previousMembersByEmail.get(email);
         if (person == null) {
-            return result(row, name, email, studentNumber, null, RetentionRowStatus.NOT_PREVIOUS_MEMBER,
+            return result(row, name, email, studentNumber, gradeLevel, null, RetentionRowStatus.NOT_PREVIOUS_MEMBER,
                     "이전 학기 부원에서 찾을 수 없습니다.");
         }
         if (targetMemberIds.contains(person.getId())) {
-            return result(row, name, email, studentNumber, person.getId(), RetentionRowStatus.ALREADY_TARGET_MEMBER,
+            return result(row, name, email, studentNumber, gradeLevel, person.getId(), RetentionRowStatus.ALREADY_TARGET_MEMBER,
                     "이미 대상 학기에 등록된 부원입니다.");
         }
-        return result(row, name, email, studentNumber, person.getId(), RetentionRowStatus.READY,
+        return result(row, name, email, studentNumber, gradeLevel, person.getId(), RetentionRowStatus.READY,
                 "이월할 수 있습니다.");
     }
 
@@ -164,12 +183,13 @@ public class RetentionImportService {
             String name,
             String email,
             String studentNumber,
+            Integer gradeLevel,
             UUID personId,
             RetentionRowStatus status,
             String message
     ) {
         return new RetentionPreviewRowResponse(
-                source.rowNumber(), name, email, studentNumber, personId, status, message
+                source.rowNumber(), name, email, studentNumber, gradeLevel, personId, status, message
         );
     }
 
@@ -192,6 +212,13 @@ public class RetentionImportService {
         generationMemberRepository.findAllByGenerationIdWithPerson(generationId)
                 .forEach(member -> memberIds.add(member.getPerson().getId()));
         return memberIds;
+    }
+
+    private Map<UUID, Integer> gradeLevelsByPersonId(UUID generationId) {
+        Map<UUID, Integer> gradeLevels = new HashMap<>();
+        generationMemberRepository.findAllByGenerationIdWithPerson(generationId)
+                .forEach(member -> gradeLevels.put(member.getPerson().getId(), member.getGradeLevel()));
+        return gradeLevels;
     }
 
     private Map<String, Integer> normalizedEmailCounts(List<RetentionImportRowRequest> rows) {

@@ -45,6 +45,9 @@ public class Application {
     @Column(name = "submitted_at", nullable = false)
     private Instant submittedAt;
 
+    @Column(name = "grade_level")
+    private Short gradeLevel;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -54,19 +57,29 @@ public class Application {
     protected Application() {
     }
 
-    private Application(Generation generation, Person person, ApplicationSourceType sourceType) {
+    private Application(
+            Generation generation,
+            Person person,
+            ApplicationSourceType sourceType,
+            Integer gradeLevel
+    ) {
         Instant now = Instant.now();
         this.generation = generation;
         this.person = person;
         this.status = ApplicationStatus.SUBMITTED;
         this.sourceType = sourceType;
+        this.gradeLevel = normalizeGradeLevel(gradeLevel);
         this.submittedAt = now;
         this.createdAt = now;
         this.updatedAt = now;
     }
 
     public static Application createManual(Generation generation, Person person) {
-        return new Application(generation, person, ApplicationSourceType.MANUAL);
+        return createManual(generation, person, null);
+    }
+
+    public static Application createManual(Generation generation, Person person, Integer gradeLevel) {
+        return new Application(generation, person, ApplicationSourceType.MANUAL, gradeLevel);
     }
 
     public static Application createFromGoogleForm(
@@ -74,10 +87,20 @@ public class Application {
             Person person,
             Instant submittedAt
     ) {
+        return createFromGoogleForm(generation, person, submittedAt, null);
+    }
+
+    public static Application createFromGoogleForm(
+            Generation generation,
+            Person person,
+            Instant submittedAt,
+            Integer gradeLevel
+    ) {
         Application application = new Application(
                 generation,
                 person,
-                ApplicationSourceType.GOOGLE_FORM
+                ApplicationSourceType.GOOGLE_FORM,
+                gradeLevel
         );
         application.submittedAt = submittedAt;
         return application;
@@ -124,6 +147,18 @@ public class Application {
 
     public Instant getSubmittedAt() {
         return submittedAt;
+    }
+
+    public Integer getGradeLevel() {
+        return gradeLevel == null ? null : gradeLevel.intValue();
+    }
+
+    private static Short normalizeGradeLevel(Integer gradeLevel) {
+        if (gradeLevel == null) return null;
+        if (gradeLevel < 1 || gradeLevel > 20) {
+            throw new IllegalArgumentException("학년은 1~20 사이여야 합니다.");
+        }
+        return gradeLevel.shortValue();
     }
 
     public Instant getCreatedAt() {

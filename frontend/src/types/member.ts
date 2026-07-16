@@ -10,9 +10,10 @@ export type GenerationMemberDuesStatus = NonNullable<MemberSchema["duesStatus"]>
 
 export type GenerationMember = Required<Omit<
   MemberSchema,
-  "phone" | "duesStatusUpdatedAt" | "duesStatusUpdatedByUserId" | "duesStatusUpdatedByName"
+  "phone" | "gradeLevel" | "duesStatusUpdatedAt" | "duesStatusUpdatedByUserId" | "duesStatusUpdatedByName"
 >> & {
   phone: string | null;
+  gradeLevel: number | null;
   duesStatus: GenerationMemberDuesStatus;
   duesStatusUpdatedAt: string | null;
   duesStatusUpdatedByUserId: string | null;
